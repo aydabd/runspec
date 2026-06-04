@@ -1,0 +1,89 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+*.sublime-*
+.history/
+
+# Build artifacts
+/build/
+/dist/
+/out/
+/target/
+/.gradle/
+/.next/
+/.nuxt/
+/.svelte-kit/
+/.angular/
+/.turbo/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+/node_modules/
+/vendor/
+.npm/
+.pnpm-store/
+.yarn/
+
+# Environment and secrets
+.env
+.env.local
+*.key
+*.pem
+secrets/
+
+# Logs
+*.log
+logs/
+
+# Coverage and test reports
+/coverage/
+*.cover
+.coverage
+htmlcov/
+coverage.xml
+
+# Python caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# JavaScript/TypeScript tooling caches
+.eslintcache
+
+# Go artifacts
+bin/
+*.test
+coverage.out
+
+# Java / Maven / Gradle
+.gradle/
+
+# Local environments
+.venv/
+venv/
+
+# Terraform local state
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

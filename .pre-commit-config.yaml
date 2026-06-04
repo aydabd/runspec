@@ -1,0 +1,155 @@
+---
+# =============================================================================
+# {{REPOSITORY_NAME}} — Pre-commit hooks (source of truth for all linting)
+# =============================================================================
+# All linters run from the micromamba environment — zero extra downloads.
+# Tool versions are managed by conda-forge in environment.yml.
+#
+# Everything uses `repo: local` with `language: system` so pre-commit
+# calls the micromamba-installed binaries directly.
+#
+# LINT_MODE:
+#   fix   — auto-fix formatting (default for local development)
+#   check — check-only, fail on violations (set by CI)
+# =============================================================================
+exclude: |-
+  (?x)^(
+    build/
+  )
+repos:
+  # ── Standard file hygiene ──────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ── All local hooks use language: system (tools from micromamba env) ────────
+  - repo: local
+    hooks:
+      # ── EditorConfig compliance ────────────────────────────────────────────
+      - id: editorconfig-checker
+        name: editorconfig-checker
+        entry: ec
+        language: system
+        exclude: >
+          (?x)^(
+            .*\.(png|jpg|jpeg|gif|ico|svg|pdf|lock)|
+            \.git/.*
+          )$
+
+      # ── Shell: formatting (shfmt) ─────────────────────────────────────────
+      - id: shfmt
+        name: shfmt
+        entry: bash
+        args:
+          - -c
+          - |
+            if [ "$LINT_MODE" = "check" ]; then
+              shfmt -d -i 4 -ci -sr "$@"
+            else
+              shfmt -w -i 4 -ci -sr "$@"
+            fi
+          - shfmt
+        language: system
+        types: [shell]
+
+      # ── Shell: linting (shellcheck) ────────────────────────────────────────
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+
+      # ── XML: validation (xmllint) ─────────────────────────────────────────
+      - id: xmllint
+        name: xmllint
+        entry: xmllint
+        args: [--noout]
+        language: system
+        types: [xml]
+
+      # ── TOML: formatting + validation (taplo) ─────────────────────────────
+      - id: taplo
+        name: taplo
+        entry: bash
+        args:
+          - -c
+          - |
+            if [ "$LINT_MODE" = "check" ]; then
+              taplo check "$@" && taplo fmt --check "$@"
+            else
+              taplo fmt "$@"
+            fi
+          - taplo
+        language: system
+        types: [toml]
+
+      # ── YAML: linting (yamllint) ──────────────────────────────────────────
+      - id: yamllint
+        name: yamllint
+        entry: yamllint
+        args: [--config-file, .github/linters/.yaml-lint.yml]
+        language: system
+        types: [yaml]
+
+      # ── Markdown: linting (markdownlint-cli) ──────────────────────────────
+      - id: markdownlint
+        name: markdownlint
+        entry: bash
+        args:
+          - -c
+          - |
+            if [ "$LINT_MODE" = "check" ]; then
+              markdownlint --config .github/linters/.markdownlint.json --ignore CHANGELOG.md "$@"
+            else
+              markdownlint --fix --config .github/linters/.markdownlint.json --ignore CHANGELOG.md "$@" || true
+            fi
+          - markdownlint
+        language: system
+        types: [markdown]
+
+      # ── JSON / YAML / Markdown: formatting (prettier) ─────────────────────
+      - id: prettier
+        name: prettier
+        entry: bash
+        args:
+          - -c
+          - |
+            if [ "$LINT_MODE" = "check" ]; then
+              prettier --check --config .prettierrc.yaml --ignore-path .prettierignore "$@" || {
+                echo "Files need formatting. Run: make lint"
+                exit 1
+              }
+            else
+              prettier -w --config .prettierrc.yaml --ignore-path .prettierignore "$@"
+            fi
+          - prettier
+        language: system
+        types_or: [json, yaml, markdown]
+
+  # ── Commit message: conventional commits ──────────────────────────────────
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - docs
+          - style
+          - refactor
+          - perf
+          - test
+          - build
+          - ci
+          - chore
+          - revert

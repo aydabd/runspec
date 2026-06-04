@@ -1,0 +1,23 @@
+---
+description: Project coding standards and AI agent instructions
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Project Instructions
+
+The project coding standards and AI agent instructions are maintained in a single
+canonical file to avoid duplication:
+
+**`.github/instructions/project.instructions.md`**
+
+Always read and follow the instructions in that file when working in this repository.
+It covers: code style, architecture patterns, testing standards, documentation rules,
+and common tasks.
+
+# PR Review Agent Kit
+
+This repository includes reusable PR review agents under `.github/agents/` and
+specialised skills under `.github/skills/`.
+
+Key commands: `full review`, `quick review`, `security review`, `resolve PR comments`.
