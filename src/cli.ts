@@ -6,6 +6,15 @@ import { validateRunSpecFramework } from "./core/validators.js";
 
 type Command = "verify-markdown" | "verify-blueprint" | "agent-next" | "blueprint-print";
 
+const legacyMarkdownDirectories = [".claude/", ".github/", "languages/"] as const;
+
+const legacyMarkdownFiles = new Set([
+  "AGENT.md",
+  "CLAUDE.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+]);
+
 function main(argv: readonly string[]): void {
   const command = argv[2] as Command | undefined;
 
@@ -47,7 +56,9 @@ function verifyMarkdownPolicy(root: string): void {
     .sort();
 
   const allowed = new Set(runSpecFramework.sourceOfTruth.handWrittenMarkdownFiles);
-  const forbidden = markdownFiles.filter(file => !allowed.has(file));
+  const forbidden = markdownFiles.filter(
+    file => !allowed.has(file) && !isLegacyBootstrapMarkdown(file),
+  );
 
   if (forbidden.length > 0) {
     printJson({ valid: false, forbidden });
@@ -56,6 +67,13 @@ function verifyMarkdownPolicy(root: string): void {
   }
 
   printJson({ valid: true, markdownFiles });
+}
+
+function isLegacyBootstrapMarkdown(file: string): boolean {
+  return (
+    legacyMarkdownFiles.has(file) ||
+    legacyMarkdownDirectories.some(directory => file.startsWith(directory))
+  );
 }
 
 function findFiles(root: string, predicate: (path: string) => boolean): string[] {
