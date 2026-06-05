@@ -12,6 +12,7 @@ export {
   productFlow,
   qualityGate,
   serviceTarget,
+  skeletonGenerator,
   sourceOfTruthPolicy,
   threatModel,
   verificationHarness,
@@ -40,6 +41,10 @@ export type { AgentTask } from "./core/agent.js";
 
 export { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 
+export { generate, writeGenerationResult, GenerationError } from "./core/generator.js";
+
+export { goHttpGenerator } from "./core/generators/go-http.js";
+
 export type {
   AcceptanceCriterion,
   AcceptancePredicate,
@@ -61,10 +66,14 @@ export type {
   ExampleService,
   FileAbsentPredicate,
   FilePresentPredicate,
+  FileWriter,
   FlowStep,
   FollowUpMilestone,
   FollowUpSummary,
   GateKind,
+  GeneratedFile,
+  GenerationRequest,
+  GenerationResult,
   HarnessKind,
   HttpContract,
   ImplementationContract,
@@ -90,6 +99,7 @@ export type {
   ServiceFramework,
   ServiceLanguage,
   ServiceTarget,
+  SkeletonGenerator,
   SourceOfTruthPolicy,
   Threat,
   ThreatModel,
