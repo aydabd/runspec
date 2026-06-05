@@ -108,6 +108,7 @@ runspec --version
 runspec verify-markdown
 runspec verify-blueprint
 runspec verify-plan --plan src/plans/pr1.ts
+runspec plan-status --plan src/plans/pr1.ts
 runspec next-plan-step --plan src/plans/pr1.ts
 runspec list-followups --plan src/plans/pr1.ts
 runspec agent-next
