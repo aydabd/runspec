@@ -6,7 +6,7 @@ import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
 import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
-import type { PlanEnvironment, WorkPlan } from "./core/model.js";
+import type { MarkdownPolicy, PlanEnvironment, WorkPlan } from "./core/model.js";
 
 type Command =
   | "verify-markdown"
@@ -18,16 +18,25 @@ type Command =
   | "list-followups"
   | "plan-status";
 
-const legacyMarkdownDirectories = [".claude/", ".github/", "languages/"] as const;
-
-const legacyMarkdownFiles = new Set([
-  "AGENT.md",
-  "CLAUDE.md",
-  "CONTRIBUTING.md",
-  "SECURITY.md",
-]);
+export type MarkdownClassification = "human-onboarding" | "agent-runtime" | "forbidden";
 
 const defaultPlanSourcePath = "src/plans/pr1.ts";
+
+export function classifyMarkdown(relativePath: string, policy: MarkdownPolicy): MarkdownClassification {
+  if (policy.humanOnboarding.includes(relativePath)) {
+    return "human-onboarding";
+  }
+  for (const entry of policy.agentRuntimeConfiguration) {
+    if (entry.endsWith("/")) {
+      if (relativePath.startsWith(entry)) {
+        return "agent-runtime";
+      }
+    } else if (entry === relativePath) {
+      return "agent-runtime";
+    }
+  }
+  return "forbidden";
+}
 
 async function main(argv: readonly string[]): Promise<void> {
   const command = argv[2] as Command | undefined;
@@ -181,16 +190,12 @@ function verifyBlueprint(): void {
 }
 
 function verifyMarkdownPolicy(root: string): void {
-  const markdownFiles = findFiles(root, file => extname(file) === ".md")
+  const policy = runSpecFramework.sourceOfTruth.markdownPolicy;
+  const markdownFiles = findFiles(root, file => extname(file) === ".md", policy.excludedDirectories)
     .map(file => normalizeRepositoryPath(root, file))
-    .filter(file => !file.startsWith(".git/"))
-    .filter(file => !file.startsWith("dist/"))
     .sort();
 
-  const allowed = new Set(runSpecFramework.sourceOfTruth.markdownPolicy.humanOnboarding);
-  const forbidden = markdownFiles.filter(
-    file => !allowed.has(file) && !isLegacyBootstrapMarkdown(file),
-  );
+  const forbidden = markdownFiles.filter(file => classifyMarkdown(file, policy) === "forbidden");
 
   if (forbidden.length > 0) {
     printJson({ valid: false, forbidden });
@@ -209,19 +214,12 @@ function normalizeRepositoryPath(root: string, file: string): string {
   return normalizedFile.startsWith(prefix) ? normalizedFile.slice(prefix.length) : normalizedFile;
 }
 
-function isLegacyBootstrapMarkdown(file: string): boolean {
-  return (
-    legacyMarkdownFiles.has(file) ||
-    legacyMarkdownDirectories.some(directory => file.startsWith(directory))
-  );
-}
-
-function findFiles(root: string, predicate: (path: string) => boolean): string[] {
+function findFiles(root: string, predicate: (path: string) => boolean, excludedDirectories: readonly string[]): string[] {
   const result: string[] = [];
   const entries = readdirSync(root);
 
   for (const entry of entries) {
-    if ([".git", "node_modules", "build"].includes(entry)) {
+    if (excludedDirectories.includes(entry)) {
       continue;
     }
 
@@ -229,7 +227,7 @@ function findFiles(root: string, predicate: (path: string) => boolean): string[]
     const stats = statSync(path);
 
     if (stats.isDirectory()) {
-      result.push(...findFiles(path, predicate));
+      result.push(...findFiles(path, predicate, excludedDirectories));
       continue;
     }
 
@@ -245,10 +243,20 @@ function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
-main(process.argv).catch(error => {
-  if (error instanceof PlanValidationError) {
-    return;
+function isEntrypoint(): boolean {
+  const scriptArg = process.argv[1];
+  if (scriptArg === undefined) {
+    return false;
   }
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+  return pathToFileURL(scriptArg).href === import.meta.url;
+}
+
+if (isEntrypoint()) {
+  main(process.argv).catch(error => {
+    if (error instanceof PlanValidationError) {
+      return;
+    }
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}
