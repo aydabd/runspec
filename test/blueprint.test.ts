@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { runSpecFramework } from "../src/blueprint/runSpecFramework.js";
-import { nextAgentTask } from "../src/core/agent.js";
+import { acceptanceForBlockingGates, nextAgentTask } from "../src/core/agent.js";
 import { validateRunSpecFramework } from "../src/core/validators.js";
 import { loanPlatformExample } from "../src/examples/loanPlatform.js";
 
@@ -28,6 +28,15 @@ test("RunSpec provides an agent task from executable policy", () => {
   assert.match(task.reason, /Blueprint/);
   assert.ok(task.commands.includes("npm test"));
   assert.equal(task.acceptance.includes("requirement gate passes"), true);
+});
+
+test("acceptanceForBlockingGates filters non-blocking gates", () => {
+  const result = acceptanceForBlockingGates([
+    { kind: "requirement", name: "req", blocking: true, command: "", evidence: "" },
+    { kind: "report", name: "informational", blocking: false, command: "", evidence: "" },
+    { kind: "security", name: "sec", blocking: true, command: "", evidence: "" },
+  ]);
+  assert.deepEqual(result, ["requirement gate passes", "security gate passes"]);
 });
 
 test("RunSpec example supports enterprise multi-service topology", () => {

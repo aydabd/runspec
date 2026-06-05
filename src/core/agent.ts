@@ -1,4 +1,4 @@
-import type { GateKind, RunSpecApplicationBuilder } from "./model.js";
+import type { QualityGate, RunSpecApplicationBuilder } from "./model.js";
 import { validateRunSpecFramework } from "./validators.js";
 
 export type AgentTask = {
@@ -46,12 +46,12 @@ export function nextAgentTask(framework: RunSpecApplicationBuilder): AgentTask {
     allowedFiles: framework.agentPolicy.allowedToModify,
     deniedFiles: framework.agentPolicy.deniedToModify,
     commands: framework.agentPolicy.requiredCommandsBeforeCompletion,
-    acceptance: acceptanceForAllBlockingGates(framework.qualityGates.map(gate => gate.kind)),
+    acceptance: acceptanceForBlockingGates(framework.qualityGates),
   };
 }
 
-function acceptanceForAllBlockingGates(gates: readonly GateKind[]): readonly string[] {
-  return gates.map(gate => `${gate} gate passes`);
+export function acceptanceForBlockingGates(gates: readonly QualityGate[]): readonly string[] {
+  return gates.filter(gate => gate.blocking).map(gate => `${gate.kind} gate passes`);
 }
 
 function uniqueValues(values: readonly string[]): readonly string[] {

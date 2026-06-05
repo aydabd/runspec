@@ -10,6 +10,17 @@ export type ValidationRule = (framework: RunSpecApplicationBuilder) => readonly 
 
 const knownPredicateKinds: ReadonlySet<string> = new Set(acceptancePredicateKinds);
 
+function looksLikeDirectoryMissingSlash(path: string): boolean {
+  if (!path.includes("/") || path.endsWith("/")) {
+    return false;
+  }
+  const basename = path.slice(path.lastIndexOf("/") + 1);
+  if (basename.startsWith(".")) {
+    return false;
+  }
+  return !basename.includes(".");
+}
+
 export const sourceOfTruthRule: ValidationRule = framework => {
   const issues: ValidationIssue[] = [];
   const policy = framework.sourceOfTruth;
@@ -38,7 +49,7 @@ export const sourceOfTruthRule: ValidationRule = framework => {
   if (!md.agentRuntimeConfiguration.every(path => path.length > 0)) {
     issues.push({ path: "sourceOfTruth.markdownPolicy.agentRuntimeConfiguration", message: "agent-runtime-configuration entries must be non-empty" });
   }
-  const directoryLikeWithoutSlash = md.agentRuntimeConfiguration.filter(path => path.includes("/") && !path.endsWith("/"));
+  const directoryLikeWithoutSlash = md.agentRuntimeConfiguration.filter(looksLikeDirectoryMissingSlash);
   if (directoryLikeWithoutSlash.length > 0) {
     issues.push({
       path: "sourceOfTruth.markdownPolicy.agentRuntimeConfiguration",
