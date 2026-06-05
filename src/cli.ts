@@ -26,7 +26,6 @@ export type MarkdownClassification = "human-onboarding" | "agent-runtime" | "for
 
 const defaultPlanSourcePath = "src/plans/pr1.ts";
 const maxWalkDepth = 32;
-const exitCodeSuccess = 0;
 const exitCodePolicyFailure = 1;
 const exitCodeUsageError = 2;
 
