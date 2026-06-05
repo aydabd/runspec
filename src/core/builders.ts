@@ -11,6 +11,7 @@ import type {
   QualityGate,
   RunSpecApplicationBuilder,
   ServiceTarget,
+  SkeletonGenerator,
   SourceOfTruthPolicy,
   ThreatModel,
   VerificationHarness,
@@ -84,4 +85,8 @@ export function acceptanceCriterion(criterion: AcceptanceCriterion): AcceptanceC
 
 export function followUpMilestone(milestone: FollowUpMilestone): FollowUpMilestone {
   return milestone;
+}
+
+export function skeletonGenerator(generator: SkeletonGenerator): SkeletonGenerator {
+  return generator;
 }
