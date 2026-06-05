@@ -268,6 +268,7 @@ export type AcceptanceCriterion = {
 
 export type AcceptancePredicate =
   | ModuleExportPredicate
+  | ModulePropertyEqualsPredicate
   | FilePresentPredicate
   | FileAbsentPredicate
   | TsconfigFlagPredicate
@@ -282,6 +283,14 @@ export type ModuleExportPredicate = {
   readonly modulePath: string;
   readonly exportName: string;
   readonly check: "is-function" | "is-array" | "is-object";
+};
+
+export type ModulePropertyEqualsPredicate = {
+  readonly kind: "module-property-equals";
+  readonly modulePath: string;
+  readonly exportName: string;
+  readonly path: readonly string[];
+  readonly expected: unknown;
 };
 
 export type FilePresentPredicate = {

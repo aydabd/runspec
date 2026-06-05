@@ -96,6 +96,8 @@ async function dispatchPredicate(
   switch (predicate.kind) {
     case "module-export":
       return checkModuleExport(predicate, env);
+    case "module-property-equals":
+      return checkModulePropertyEquals(predicate, env);
     case "file-present":
       return env.fileExists(predicate.path) ? null : `expected file present: ${predicate.path}`;
     case "file-absent":
@@ -142,6 +144,21 @@ async function checkModuleExport(
     case "is-object":
       return typeof value === "object" && value !== null ? null : `export "${predicate.exportName}" is not an object`;
   }
+}
+
+async function checkModulePropertyEquals(
+  predicate: Extract<AcceptancePredicate, { kind: "module-property-equals" }>,
+  env: PlanEnvironment,
+): Promise<string | null> {
+  const moduleExports = await env.importModule(predicate.modulePath);
+  if (!(predicate.exportName in moduleExports)) {
+    return `module "${predicate.modulePath}" does not export "${predicate.exportName}"`;
+  }
+  const exportRoot = moduleExports[predicate.exportName];
+  const actual = readPath(exportRoot, predicate.path);
+  return deepEqual(actual, predicate.expected)
+    ? null
+    : `module "${predicate.modulePath}" export "${predicate.exportName}".${predicate.path.join(".")} expected ${JSON.stringify(predicate.expected)} but was ${JSON.stringify(actual)}`;
 }
 
 function checkTsconfigFlag(
