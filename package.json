@@ -6,11 +6,11 @@
   "private": true,
   "scripts": {
     "build": "tsc --noEmit false",
-    "verify:markdown": "node dist/src/cli.js verify-markdown",
-    "verify:blueprint": "node dist/src/cli.js verify-blueprint",
-    "blueprint:print": "node dist/src/cli.js blueprint-print",
-    "agent:next": "node dist/src/cli.js agent-next",
-    "test": "npm run build && node --test dist/test/*.test.js && npm run verify:markdown && npm run verify:blueprint"
+    "verify:markdown": "npm run build && node dist/src/cli.js verify-markdown",
+    "verify:blueprint": "npm run build && node dist/src/cli.js verify-blueprint",
+    "blueprint:print": "npm run build && node dist/src/cli.js blueprint-print",
+    "agent:next": "npm run build && node dist/src/cli.js agent-next",
+    "test": "npm run build && node --test dist/test/*.test.js && node dist/src/cli.js verify-markdown && node dist/src/cli.js verify-blueprint"
   },
   "engines": {
     "node": ">=22.0.0"
