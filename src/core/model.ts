@@ -241,6 +241,35 @@ export type ValidationResult = {
   readonly issues: readonly ValidationIssue[];
 };
 
+export type GeneratedFile = {
+  readonly path: string;
+  readonly content: string;
+};
+
+export type SkeletonGenerator = {
+  readonly id: string;
+  readonly description: string;
+  readonly language: ServiceLanguage;
+  readonly framework: ServiceFramework;
+  readonly generate: (capability: ProductCapability, service: ServiceTarget) => readonly GeneratedFile[];
+};
+
+export type GenerationRequest = {
+  readonly capabilityId: string;
+  readonly serviceId: string;
+  readonly outputRoot: string;
+};
+
+export type GenerationResult = {
+  readonly request: GenerationRequest;
+  readonly capability: ProductCapability;
+  readonly service: ServiceTarget;
+  readonly generator: SkeletonGenerator;
+  readonly files: readonly GeneratedFile[];
+};
+
+export type FileWriter = (absolutePath: string, content: string) => void;
+
 export type WorkPlan = {
   readonly id: string;
   readonly title: string;
