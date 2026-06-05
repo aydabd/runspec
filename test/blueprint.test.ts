@@ -12,7 +12,12 @@ test("RunSpec enterprise blueprint is valid", () => {
 });
 
 test("RunSpec enforces executable source of truth", () => {
-  assert.deepEqual(runSpecFramework.sourceOfTruth.handWrittenMarkdownFiles, ["README.md"]);
+  const policy = runSpecFramework.sourceOfTruth.markdownPolicy;
+  assert.ok(policy.humanOnboarding.includes("README.md"));
+  assert.ok(policy.humanOnboarding.includes("CONTRIBUTING.md"));
+  assert.ok(policy.humanOnboarding.includes("SECURITY.md"));
+  assert.ok(policy.agentRuntimeConfiguration.includes(".claude/"));
+  assert.ok(policy.agentRuntimeConfiguration.includes(".github/"));
   assert.equal(runSpecFramework.sourceOfTruth.externalSpecFrameworksAllowed, false);
   assert.equal(runSpecFramework.sourceOfTruth.commentsAsSpecificationAllowed, false);
 });

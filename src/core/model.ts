@@ -26,11 +26,17 @@ export type RunSpecApplicationBuilder = {
 
 export type SourceOfTruthPolicy = {
   readonly executableDefinitionsOnly: boolean;
-  readonly handWrittenMarkdownFiles: readonly string[];
+  readonly markdownPolicy: MarkdownPolicy;
   readonly generatedArtifactDirectory: string;
   readonly generatedArtifactsAreReadOnlyForAgents: boolean;
   readonly commentsAsSpecificationAllowed: boolean;
   readonly externalSpecFrameworksAllowed: boolean;
+};
+
+export type MarkdownPolicy = {
+  readonly humanOnboarding: readonly string[];
+  readonly agentRuntimeConfiguration: readonly string[];
+  readonly excludedDirectories: readonly string[];
 };
 
 export type WorkspaceCapability = {
