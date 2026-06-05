@@ -10,6 +10,7 @@ import type {
 
 const acceptancePredicateKinds: ReadonlySet<AcceptancePredicate["kind"]> = new Set<AcceptancePredicate["kind"]>([
   "module-export",
+  "module-property-equals",
   "file-present",
   "file-absent",
   "tsconfig-flag",
