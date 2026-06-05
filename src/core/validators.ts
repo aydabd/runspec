@@ -29,17 +29,22 @@ function validateSourceOfTruth(framework: RunSpecApplicationBuilder, issues: Val
 }
 
 function validateCollections(framework: RunSpecApplicationBuilder, issues: ValidationIssue[]): void {
-  require(framework.workspaceCapabilities.length >= 3, "workspaceCapabilities", "single-service, monorepo, and multi-repo modes must be modeled", issues);
-  require(framework.serviceTargets.length >= 3, "serviceTargets", "Go, Spring Boot, and TypeScript service targets must be modeled", issues);
+  const workspaceModes = new Set(framework.workspaceCapabilities.map(capability => capability.mode));
+  const serviceTargets = new Set(framework.serviceTargets.map(target => `${target.language}:${target.framework}`));
+
+  require(workspaceModes.has("single-service") && workspaceModes.has("monorepo") && workspaceModes.has("multi-repo"), "workspaceCapabilities", "single-service, monorepo, and multi-repo modes must be modeled", issues);
+  require(serviceTargets.has("go:go-http") && serviceTargets.has("java:spring-boot") && serviceTargets.has("typescript:node-http"), "serviceTargets", "Go, Spring Boot, and TypeScript service targets must be modeled", issues);
   require(framework.infrastructureAdapters.some(adapter => adapter.kind === "postgres"), "infrastructureAdapters.postgres", "Postgres adapter is required", issues);
   require(framework.infrastructureAdapters.some(adapter => adapter.kind === "kafka"), "infrastructureAdapters.kafka", "Kafka adapter is required", issues);
   require(framework.infrastructureAdapters.some(adapter => adapter.kind === "rabbitmq"), "infrastructureAdapters.rabbitmq", "RabbitMQ adapter is required", issues);
-  require(framework.qualityGates.every(gate => gate.blocking), "qualityGates", "all initial quality gates must be blocking", issues);
+  require(framework.qualityGates.length > 0, "qualityGates", "at least one quality gate is required", issues);
+  require(framework.qualityGates.length > 0 && framework.qualityGates.every(gate => gate.blocking), "qualityGates", "all initial quality gates must be blocking", issues);
   require(framework.harnesses.length > 0, "harnesses", "verification harnesses are required", issues);
   require(framework.diagramTargets.length > 0, "diagramTargets", "diagram generation targets are required", issues);
 }
 
 function validateCapabilities(capabilities: readonly ProductCapability[], threatModels: readonly ThreatModel[], issues: ValidationIssue[]): void {
+  const capabilityIds = new Set(capabilities.map(capability => capability.id));
   const threatIds = new Set(threatModels.flatMap(model => model.threats.map(threat => threat.id)));
   const scenarioIds = new Set(capabilities.flatMap(capability => capability.scenarios.map(scenario => scenario.id)));
 
@@ -62,6 +67,8 @@ function validateCapabilities(capabilities: readonly ProductCapability[], threat
   }
 
   for (const model of threatModels) {
+    require(capabilityIds.has(model.capabilityId), `threatModels.${model.id}.capabilityId`, `unknown capability: ${model.capabilityId}`, issues);
+
     for (const threat of model.threats) {
       require(threat.verifiedByScenarioIds.length > 0, `threatModels.${model.id}.threats.${threat.id}.verifiedByScenarioIds`, "threat must be verified by executable scenario", issues);
       for (const scenarioId of threat.verifiedByScenarioIds) {
