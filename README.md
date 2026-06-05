@@ -1,96 +1,84 @@
-# runspec
+# RunSpec
 
-[![Lint](https://github.com/aydabd/runspec/actions/workflows/lint.yml/badge.svg)](https://github.com/aydabd/runspec/actions/workflows/lint.yml)
+RunSpec is an executable enterprise application builder for complex production systems.
 
-## Overview
+The source of truth is code. Product capabilities, service topology, infrastructure, threat models, flows, verification harnesses, and agent rules are expressed as typed executable definitions.
 
-Brief project description following SOLID principles, TDD, and DDD architecture patterns.
+Markdown is not used as a specification format. This repository allows only this `README.md` as hand-written markdown. Generated reports, diagrams, and evidence must be produced under `.runspec/generated/`.
 
-## Architecture
+## Goal
 
-This project follows:
+Build enterprise applications without OpenSpec, Spec Kit, or markdown requirement files.
 
-- **SOLID principles** for maintainable code
-- **Test-Driven Development** (TDD) for reliability
-- **Domain-Driven Design** (DDD) for clear business logic
-- **Type-safe** implementation
-- **Dependency injection** for testability
+RunSpec lets agents and developers define a product in code, generate implementation skeletons, implement production code, execute verification harnesses, and accept work only when all gates pass.
 
-## Development
-
-### Prerequisites
-
-List required tools and versions here.
-
-### Setup
+## Core loop
 
 ```bash
-git clone <repository-url>
-cd <repository-name>
-
-# Install dependencies
-make install
+npm test
+npm run agent:next
 ```
 
-### Running Tests
+The agent loop is:
+
+```text
+Executable product definition -> generated skeleton -> implementation -> verification gates -> generated evidence
+```
+
+## Repository rules
+
+```text
+Only README.md may be hand-written markdown.
+Executable definitions live in TypeScript files.
+Generated documentation lives under .runspec/generated/.
+Agents may not manually edit generated output.
+Agents must run npm test before claiming completion.
+Application code is accepted only through executable verification gates.
+```
+
+## Commands
 
 ```bash
-# Run all tests
-make test
-
-# Run with coverage
-make coverage
+npm run build
+npm run verify:markdown
+npm run verify:blueprint
+npm test
+npm run agent:next
+npm run blueprint:print
 ```
 
-### Linting
+## Main executable files
 
-```bash
-# Run linting locally (auto-fix mode)
-make lint
-
-# Run linting in check-only mode (CI-equivalent)
-LINT_MODE=check make lint
+```text
+src/blueprint/runSpecFramework.ts
+src/examples/loanPlatform.ts
+src/core/model.ts
+src/core/builders.ts
+src/core/validators.ts
+src/core/agent.ts
+src/cli.ts
 ```
 
-The repository includes a GitHub lint workflow backed by pre-commit for
-consistent code quality:
+## What this blueprint covers
 
-- **Automatic validation** on pull requests and pushes
-- **Language-agnostic linting** for Markdown, YAML, JSON, XML, and EditorConfig
-- **Language-specific checks** from template-specific `.pre-commit-config.yaml`
-- **Local linting** via `make lint` in a micromamba-managed environment
-
-## Code Standards
-
-- **Indentation**: 4 spaces (code), 2 spaces (YAML/JSON)
-- **Linting**: Enforced via pre-commit hooks
-- **Formatting**: Autoformat before commit
-- **Type safety**: Strictly enforced
-- **No trailing whitespace**
-
-## Contributing
-
-1. Create feature branch from `main`
-2. Write tests first (TDD)
-3. Implement feature
-4. Ensure all tests pass
-5. Run linter and formatter
-6. Submit PR (requires 2 approvals)
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODEOWNERS](.github/CODEOWNERS) for details.
-
-## Security
-
-To report a vulnerability, please see [SECURITY.md](SECURITY.md).
-
-## Testing Philosophy
-
-- All code must be testable
-- Unit tests for all modules
-- Integration tests for components
-- Test fixtures separated by module
-- Minimum 80% coverage
-
-## License
-
-See LICENSE file for details.
+```text
+multi-service monorepo
+multi-repo systems
+Go services
+Spring Boot services
+Node/TypeScript services
+Postgres
+Kafka
+RabbitMQ
+Redis
+HTTP APIs
+event contracts
+repositories
+migrations
+security policies
+threat modeling
+architecture gates
+observability gates
+sequence and flow diagram targets
+AI agent execution policy
+```

@@ -1,0 +1,21 @@
+{
+  "name": "runspec",
+  "version": "0.1.0",
+  "description": "Executable enterprise application builder for production-ready systems.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit false",
+    "verify:markdown": "node dist/src/cli.js verify-markdown",
+    "verify:blueprint": "node dist/src/cli.js verify-blueprint",
+    "blueprint:print": "node dist/src/cli.js blueprint-print",
+    "agent:next": "node dist/src/cli.js agent-next",
+    "test": "npm run build && node --test dist/test/*.test.js && npm run verify:markdown && npm run verify:blueprint"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
