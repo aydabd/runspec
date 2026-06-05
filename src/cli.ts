@@ -1,13 +1,21 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, existsSync, lstatSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { extname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
+import { generate, writeGenerationResult } from "./core/generator.js";
+import { goHttpGenerator } from "./core/generators/go-http.js";
 import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
-import type { MarkdownPolicy, PlanEnvironment, WorkPlan } from "./core/model.js";
+import type {
+  FileWriter,
+  MarkdownPolicy,
+  PlanEnvironment,
+  SkeletonGenerator,
+  WorkPlan,
+} from "./core/model.js";
 
 const allowedCommands = [
   "verify-markdown",
@@ -18,7 +26,10 @@ const allowedCommands = [
   "next-plan-step",
   "list-followups",
   "plan-status",
+  "generate",
 ] as const;
+
+const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator];
 
 type Command = typeof allowedCommands[number];
 
@@ -57,6 +68,11 @@ type ParsedCli =
 
 type CliOptions = {
   readonly planPath: string;
+  readonly capabilityId?: string;
+  readonly serviceId?: string;
+  readonly outputRoot?: string;
+  readonly dryRun: boolean;
+  readonly force: boolean;
 };
 
 function parseCli(argv: readonly string[]): ParsedCli {
@@ -83,6 +99,11 @@ function isCommand(value: string): value is Command {
 
 function parseOptions(args: readonly string[]): CliOptions {
   let planPath = defaultPlanSourcePath;
+  let capabilityId: string | undefined;
+  let serviceId: string | undefined;
+  let outputRoot: string | undefined;
+  let dryRun = false;
+  let force = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === "--plan") {
@@ -92,11 +113,37 @@ function parseOptions(args: readonly string[]): CliOptions {
       }
       planPath = value;
       i += 1;
+    } else if (arg === "--capability") {
+      const value = args[i + 1];
+      if (value === undefined) {
+        throw new UsageError("--capability requires a capability id");
+      }
+      capabilityId = value;
+      i += 1;
+    } else if (arg === "--service") {
+      const value = args[i + 1];
+      if (value === undefined) {
+        throw new UsageError("--service requires a service id");
+      }
+      serviceId = value;
+      i += 1;
+    } else if (arg === "--output") {
+      const value = args[i + 1];
+      if (value === undefined) {
+        throw new UsageError("--output requires a directory path");
+      }
+      outputRoot = value;
+      i += 1;
+    } else if (arg === "--dry-run") {
+      dryRun = true;
+    } else if (arg === "--force") {
+      force = true;
     } else {
       throw new UsageError(`unknown option: ${arg}`);
     }
   }
-  return { planPath };
+  const options: CliOptions = { planPath, dryRun, force };
+  return { ...options, ...(capabilityId !== undefined ? { capabilityId } : {}), ...(serviceId !== undefined ? { serviceId } : {}), ...(outputRoot !== undefined ? { outputRoot } : {}) };
 }
 
 async function main(argv: readonly string[]): Promise<void> {
@@ -146,7 +193,54 @@ async function runCommand(command: Command, options: CliOptions): Promise<void> 
     case "list-followups":
       await runListFollowUps(options);
       return;
+    case "generate":
+      runGenerate(options);
+      return;
   }
+}
+
+export function runGenerate(options: CliOptions): void {
+  if (options.capabilityId === undefined) {
+    throw new UsageError("generate requires --capability <id>");
+  }
+  if (options.serviceId === undefined) {
+    throw new UsageError("generate requires --service <id>");
+  }
+  const outputRoot = options.outputRoot ?? `.runspec/generated/${options.capabilityId}-${options.serviceId}`;
+  const result = generate(runSpecFramework, {
+    capabilityId: options.capabilityId,
+    serviceId: options.serviceId,
+    outputRoot,
+  }, defaultGeneratorRegistry);
+
+  const summary = {
+    capability: result.capability.id,
+    service: result.service.id,
+    generator: result.generator.id,
+    outputRoot,
+    files: result.files.map(file => file.path),
+    dryRun: options.dryRun,
+  };
+
+  if (options.dryRun) {
+    printJson(summary);
+    return;
+  }
+
+  const cwd = process.cwd();
+  writeGenerationResult(result, createFileWriter(cwd, options.force));
+  printJson(summary);
+}
+
+function createFileWriter(cwd: string, force: boolean): FileWriter {
+  return (outputRoot, relativePath, content) => {
+    const absolutePath = resolve(cwd, outputRoot, relativePath);
+    if (!force && existsSync(absolutePath)) {
+      throw new UsageError(`refusing to overwrite existing file: ${absolutePath} (pass --force to overwrite)`);
+    }
+    mkdirSync(dirname(absolutePath), { recursive: true });
+    writeFileSync(absolutePath, content);
+  };
 }
 
 function usageText(): string {
@@ -162,9 +256,15 @@ function usageText(): string {
     "  next-plan-step     Print the next un-accepted PlannedCommit as a task",
     "  list-followups     Print the remaining FollowUpMilestones as JSON",
     "  plan-status        Alias for verify-plan",
+    "  generate           Emit a service skeleton from a capability + service-target",
     "",
     "Options:",
     "  --plan <path>      Path to the plan source file (default: src/plans/pr1.ts)",
+    "  --capability <id>  Capability id (required for generate)",
+    "  --service <id>     Service target id (required for generate)",
+    "  --output <dir>     Output directory (default: .runspec/generated/<cap>-<svc>)",
+    "  --dry-run          Print the generation plan without writing files",
+    "  --force            Allow overwriting existing files during generate",
     "  --help, -h         Show this help and exit",
     "  --version, -v      Show the runspec version and exit",
     "",
