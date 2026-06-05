@@ -5,7 +5,7 @@ channels:
   - nodefaults
 dependencies:
   - python=3.13
-  - nodejs
+  - nodejs>=22
   - pre-commit
   - prettier
   - markdownlint-cli
