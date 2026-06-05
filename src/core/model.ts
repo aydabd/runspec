@@ -268,7 +268,7 @@ export type GenerationResult = {
   readonly files: readonly GeneratedFile[];
 };
 
-export type FileWriter = (absolutePath: string, content: string) => void;
+export type FileWriter = (outputRoot: string, relativePath: string, content: string) => void;
 
 export type WorkPlan = {
   readonly id: string;
