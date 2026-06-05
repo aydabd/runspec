@@ -1,26 +1,36 @@
-import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync, lstatSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { extname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
 import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
 import type { MarkdownPolicy, PlanEnvironment, WorkPlan } from "./core/model.js";
 
-type Command =
-  | "verify-markdown"
-  | "verify-blueprint"
-  | "agent-next"
-  | "blueprint-print"
-  | "verify-plan"
-  | "next-plan-step"
-  | "list-followups"
-  | "plan-status";
+const allowedCommands = [
+  "verify-markdown",
+  "verify-blueprint",
+  "agent-next",
+  "blueprint-print",
+  "verify-plan",
+  "next-plan-step",
+  "list-followups",
+  "plan-status",
+] as const;
+
+type Command = typeof allowedCommands[number];
 
 export type MarkdownClassification = "human-onboarding" | "agent-runtime" | "forbidden";
 
 const defaultPlanSourcePath = "src/plans/pr1.ts";
+const maxWalkDepth = 32;
+const exitCodeSuccess = 0;
+const exitCodePolicyFailure = 1;
+const exitCodeUsageError = 2;
+
+class UsageError extends Error {}
+class PlanValidationError extends Error {}
 
 export function classifyMarkdown(relativePath: string, policy: MarkdownPolicy): MarkdownClassification {
   if (policy.humanOnboarding.includes(relativePath)) {
@@ -38,13 +48,84 @@ export function classifyMarkdown(relativePath: string, policy: MarkdownPolicy): 
   return "forbidden";
 }
 
-async function main(argv: readonly string[]): Promise<void> {
-  const command = argv[2] as Command | undefined;
-  const options = parseOptions(argv.slice(3));
+type ParsedCli =
+  | { readonly kind: "help" }
+  | { readonly kind: "version" }
+  | { readonly kind: "command"; readonly command: Command; readonly options: CliOptions }
+  | { readonly kind: "missing" }
+  | { readonly kind: "unknown"; readonly raw: string };
 
+type CliOptions = {
+  readonly planPath: string;
+};
+
+function parseCli(argv: readonly string[]): ParsedCli {
+  const rest = argv.slice(2);
+  if (rest.includes("--help") || rest.includes("-h")) {
+    return { kind: "help" };
+  }
+  if (rest.includes("--version") || rest.includes("-v")) {
+    return { kind: "version" };
+  }
+  const head = rest[0];
+  if (head === undefined) {
+    return { kind: "missing" };
+  }
+  if (!isCommand(head)) {
+    return { kind: "unknown", raw: head };
+  }
+  return { kind: "command", command: head, options: parseOptions(rest.slice(1)) };
+}
+
+function isCommand(value: string): value is Command {
+  return (allowedCommands as readonly string[]).includes(value);
+}
+
+function parseOptions(args: readonly string[]): CliOptions {
+  let planPath = defaultPlanSourcePath;
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--plan") {
+      const value = args[i + 1];
+      if (value === undefined) {
+        throw new UsageError("--plan requires a path argument");
+      }
+      planPath = value;
+      i += 1;
+    } else {
+      throw new UsageError(`unknown option: ${arg}`);
+    }
+  }
+  return { planPath };
+}
+
+async function main(argv: readonly string[]): Promise<void> {
+  const parsed = parseCli(argv);
+  switch (parsed.kind) {
+    case "help":
+      process.stdout.write(usageText());
+      return;
+    case "version":
+      process.stdout.write(`${readPackageVersion()}\n`);
+      return;
+    case "missing":
+      process.stderr.write(`runspec: missing command\n${usageText()}`);
+      process.exitCode = exitCodeUsageError;
+      return;
+    case "unknown":
+      process.stderr.write(`runspec: unknown command "${parsed.raw}"\n${usageText()}`);
+      process.exitCode = exitCodeUsageError;
+      return;
+    case "command":
+      await runCommand(parsed.command, parsed.options);
+      return;
+  }
+}
+
+async function runCommand(command: Command, options: CliOptions): Promise<void> {
   switch (command) {
     case "verify-markdown":
-      verifyMarkdownPolicy(process.cwd());
+      verifyMarkdownPolicy();
       return;
     case "verify-blueprint":
       verifyBlueprint();
@@ -65,29 +146,41 @@ async function main(argv: readonly string[]): Promise<void> {
     case "list-followups":
       await runListFollowUps(options);
       return;
-    default:
-      throw new Error(`Unsupported command: ${command ?? "<missing>"}`);
   }
 }
 
-type CliOptions = {
-  readonly planPath: string;
-};
+function usageText(): string {
+  return [
+    "Usage: runspec <command> [options]",
+    "",
+    "Commands:",
+    "  verify-markdown    Verify markdown files match the source-of-truth policy",
+    "  verify-blueprint   Validate the executable runspec blueprint",
+    "  agent-next         Print the next agent task derived from the blueprint",
+    "  blueprint-print    Print the blueprint as JSON",
+    "  verify-plan        Verify every PlannedCommit acceptance predicate",
+    "  next-plan-step     Print the next un-accepted PlannedCommit as a task",
+    "  list-followups     Print the remaining FollowUpMilestones as JSON",
+    "  plan-status        Alias for verify-plan",
+    "",
+    "Options:",
+    "  --plan <path>      Path to the plan source file (default: src/plans/pr1.ts)",
+    "  --help, -h         Show this help and exit",
+    "  --version, -v      Show the runspec version and exit",
+    "",
+    "Exit codes:",
+    "  0  success",
+    "  1  policy or validation failure",
+    "  2  usage error or repository safety check failed",
+    "",
+  ].join("\n");
+}
 
-function parseOptions(args: readonly string[]): CliOptions {
-  let planPath = defaultPlanSourcePath;
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-    if (arg === "--plan") {
-      const value = args[i + 1];
-      if (value === undefined) {
-        throw new Error("--plan requires a path argument");
-      }
-      planPath = value;
-      i += 1;
-    }
-  }
-  return { planPath };
+function readPackageVersion(): string {
+  const candidate = resolveRepoRelativePath("package.json");
+  const raw = readFileSync(candidate, "utf8");
+  const parsed = JSON.parse(raw) as { version?: string };
+  return parsed.version ?? "0.0.0";
 }
 
 async function runVerifyPlan(options: CliOptions): Promise<void> {
@@ -96,7 +189,7 @@ async function runVerifyPlan(options: CliOptions): Promise<void> {
   const status = await verifyPlan(plan, env);
   printJson(status);
   if (status.commits.some(commit => !commit.accepted)) {
-    process.exitCode = 1;
+    process.exitCode = exitCodePolicyFailure;
   }
 }
 
@@ -122,26 +215,24 @@ async function loadPlan(sourcePath: string): Promise<WorkPlan> {
   const moduleExports = await import(moduleUrl);
   const planExport = (moduleExports as { default?: unknown }).default ?? (moduleExports as { plan?: unknown }).plan;
   if (planExport === undefined) {
-    throw new Error(`plan module "${sourcePath}" must export the plan as default export or as "plan"`);
+    throw new UsageError(`plan module "${sourcePath}" must export the plan as default export or as "plan"`);
   }
   const plan = planExport as WorkPlan;
   const validation = validateWorkPlan(plan);
   if (!validation.valid) {
     printJson({ valid: false, issues: validation.issues });
-    process.exitCode = 1;
+    process.exitCode = exitCodePolicyFailure;
     throw new PlanValidationError(`plan "${sourcePath}" failed planRule validation`);
   }
   return plan;
 }
-
-class PlanValidationError extends Error {}
 
 function resolvePlanModuleUrl(sourcePath: string, cwd: string): string {
   const jsRelative = sourcePath.endsWith(".ts") ? sourcePath.replace(/\.ts$/, ".js") : sourcePath;
   const distRelative = jsRelative.startsWith("dist/") ? jsRelative : `dist/${jsRelative}`;
   const absolute = resolve(cwd, distRelative);
   if (!existsSync(absolute)) {
-    throw new Error(`plan module not found at ${absolute}. Run "npm run build" first.`);
+    throw new UsageError(`plan module not found at ${absolute}. Run "npm run build" first.`);
   }
   return pathToFileURL(absolute).href;
 }
@@ -172,26 +263,23 @@ function createDefaultPlanEnvironment(cwd: string): PlanEnvironment {
 function resolveCurrentCliPath(): string {
   const scriptArg = process.argv[1];
   if (scriptArg === undefined) {
-    throw new Error("cannot resolve current cli path: process.argv[1] missing");
+    throw new UsageError("cannot resolve current cli path: process.argv[1] missing");
   }
   return scriptArg;
 }
 
 function verifyBlueprint(): void {
   const result = validateRunSpecFramework(runSpecFramework);
-
-  if (!result.valid) {
-    printJson(result);
-    process.exitCode = 1;
-    return;
-  }
-
   printJson(result);
+  if (!result.valid) {
+    process.exitCode = exitCodePolicyFailure;
+  }
 }
 
-function verifyMarkdownPolicy(root: string): void {
+function verifyMarkdownPolicy(): void {
+  const root = discoverRepositoryRoot(process.cwd());
   const policy = runSpecFramework.sourceOfTruth.markdownPolicy;
-  const markdownFiles = findFiles(root, file => extname(file) === ".md", policy.excludedDirectories)
+  const markdownFiles = walkRepositoryFiles(root, file => extname(file) === ".md", policy.excludedDirectories)
     .map(file => normalizeRepositoryPath(root, file))
     .sort();
 
@@ -199,11 +287,68 @@ function verifyMarkdownPolicy(root: string): void {
 
   if (forbidden.length > 0) {
     printJson({ valid: false, forbidden });
-    process.exitCode = 1;
+    process.exitCode = exitCodePolicyFailure;
     return;
   }
 
   printJson({ valid: true, markdownFiles });
+}
+
+function discoverRepositoryRoot(cwd: string): string {
+  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new UsageError(
+      `runspec requires a git working tree for safe file-system walks. cwd "${cwd}" is not inside a git repository.`,
+    );
+  }
+  return result.stdout.trim();
+}
+
+function walkRepositoryFiles(
+  root: string,
+  predicate: (path: string) => boolean,
+  excludedDirectories: readonly string[],
+): string[] {
+  const result: string[] = [];
+  walk(root, root, predicate, excludedDirectories, 0, result);
+  return result;
+}
+
+function walk(
+  root: string,
+  current: string,
+  predicate: (path: string) => boolean,
+  excludedDirectories: readonly string[],
+  depth: number,
+  collector: string[],
+): void {
+  if (depth > maxWalkDepth) {
+    throw new UsageError(`directory depth exceeded ${maxWalkDepth} under ${root} — refusing to descend further`);
+  }
+  const entries = readdirSync(current);
+  for (const entry of entries) {
+    if (excludedDirectories.includes(entry)) {
+      continue;
+    }
+    const childPath = join(current, entry);
+    const stats = lstatSync(childPath);
+    if (stats.isSymbolicLink()) {
+      continue;
+    }
+    if (stats.isDirectory()) {
+      walk(root, childPath, predicate, excludedDirectories, depth + 1, collector);
+      continue;
+    }
+    if (stats.isFile() && predicate(childPath)) {
+      collector.push(childPath);
+    }
+  }
+}
+
+function resolveRepoRelativePath(relativePath: string): string {
+  const here = fileURLToPath(import.meta.url);
+  const distRoot = resolve(here, "..", "..", "..");
+  return resolve(distRoot, relativePath);
 }
 
 function normalizeRepositoryPath(root: string, file: string): string {
@@ -212,31 +357,6 @@ function normalizeRepositoryPath(root: string, file: string): string {
   const prefix = `${normalizedRoot}/`;
 
   return normalizedFile.startsWith(prefix) ? normalizedFile.slice(prefix.length) : normalizedFile;
-}
-
-function findFiles(root: string, predicate: (path: string) => boolean, excludedDirectories: readonly string[]): string[] {
-  const result: string[] = [];
-  const entries = readdirSync(root);
-
-  for (const entry of entries) {
-    if (excludedDirectories.includes(entry)) {
-      continue;
-    }
-
-    const path = join(root, entry);
-    const stats = statSync(path);
-
-    if (stats.isDirectory()) {
-      result.push(...findFiles(path, predicate, excludedDirectories));
-      continue;
-    }
-
-    if (stats.isFile() && predicate(path)) {
-      result.push(path);
-    }
-  }
-
-  return result;
 }
 
 function printJson(value: unknown): void {
@@ -256,7 +376,12 @@ if (isEntrypoint()) {
     if (error instanceof PlanValidationError) {
       return;
     }
+    if (error instanceof UsageError) {
+      process.stderr.write(`${error.message}\n`);
+      process.exitCode = exitCodeUsageError;
+      return;
+    }
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 1;
+    process.exitCode = exitCodePolicyFailure;
   });
 }
