@@ -52,6 +52,26 @@ test("sourceOfTruthRule rejects directory-like agent-runtime entry missing trail
   assert.ok(issues.some(issue => issue.message.includes("must end with")));
 });
 
+test("sourceOfTruthRule accepts nested file paths and dotfiles in agent-runtime entries", () => {
+  const ok = override({
+    sourceOfTruth: {
+      ...runSpecFramework.sourceOfTruth,
+      markdownPolicy: {
+        ...runSpecFramework.sourceOfTruth.markdownPolicy,
+        agentRuntimeConfiguration: [
+          "AGENT.md",
+          "CLAUDE.md",
+          ".github/pull_request_template.md",
+          ".github/.gitignore",
+          ".claude/",
+          ".github/",
+        ],
+      },
+    },
+  });
+  assert.deepEqual(sourceOfTruthRule(ok), []);
+});
+
 test("sourceOfTruthRule rejects when .git missing from excludedDirectories", () => {
   const broken = override({
     sourceOfTruth: {
