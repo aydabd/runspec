@@ -113,10 +113,45 @@ runspec next-plan-step --plan src/plans/pr1.ts
 runspec list-followups --plan src/plans/pr1.ts
 runspec agent-next
 runspec blueprint-print
+runspec generate --capability APPLICATION_BUILDER --service go-http-service --dry-run
 ```
 
 Exit codes: `0` success, `1` policy or validation failure, `2` usage error or
 repository safety check failed.
+
+## Generating service skeletons
+
+`runspec generate` turns a typed `ProductCapability` plus a `ServiceTarget`
+into a deterministic set of source files. The Go HTTP generator is the
+reference implementation; Spring Boot, Node HTTP, React, and Go worker
+templates are declared as `FollowUpMilestone` entries in the active plan
+and will land in subsequent PRs.
+
+```bash
+# Inspect what would be written, without touching the filesystem
+runspec generate \
+  --capability APPLICATION_BUILDER \
+  --service go-http-service \
+  --dry-run
+
+# Write the skeleton to a custom directory
+runspec generate \
+  --capability APPLICATION_BUILDER \
+  --service go-http-service \
+  --output ./out/go-skeleton
+
+# Re-generate over an existing skeleton (overwrites files)
+runspec generate \
+  --capability APPLICATION_BUILDER \
+  --service go-http-service \
+  --output ./out/go-skeleton \
+  --force
+```
+
+The Go template emits `go.mod`, `main.go`, `domain/`, `usecases/`, `ports/`,
+`adapters/`, `repositories/`, `http/handler.go`, and one `tests/<scenario>_test.go`
+per scenario. Every file carries a deterministic generated-by header citing
+the source capability and service ids.
 
 ## Use runspec in your project
 
@@ -203,28 +238,34 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PR #1):** typed domain model, identity builders, validator with a
-rule registry, agent-task emitter, hardened CLI (strict argv parsing, safe
-fs walk, distinct exit codes), public API surface, WorkPlan domain, the
-self-verifying executable plan in `src/plans/pr1.ts`.
+**Today (PR #1 + PR #2):** typed domain model, identity builders, validator
+with a rule registry, agent-task emitter, hardened CLI (strict argv parsing,
+safe fs walk, distinct exit codes), public API surface, WorkPlan domain, the
+self-verifying executable plans in `src/plans/pr<N>.ts`, and the skeleton
+generator abstraction with the Go HTTP template as the reference
+implementation.
 
-**Next milestones** (see `runspec list-followups`):
-skeleton-generator, harness-runner, gate-executor, frontend-coverage,
-watch-mode, npm-publish, eslint-or-biome-config, ci-coverage-gating,
-makefile-language-adapters, additional-agent-task-shapes,
-cross-agent-policy-export.
+**Next milestones** (see `runspec list-followups --plan src/plans/pr2.ts`):
+skeleton-generator-spring-boot, skeleton-generator-node-http,
+skeleton-generator-react, skeleton-generator-go-worker, harness-runner,
+gate-executor, frontend-coverage, watch-mode, npm-publish,
+eslint-or-biome-config, ci-coverage-gating, makefile-language-adapters,
+additional-agent-task-shapes, cross-agent-policy-export.
 
 ## Main executable files
 
 ```text
 src/blueprint/runSpecFramework.ts
 src/plans/pr1.ts
+src/plans/pr2.ts
 src/examples/loanPlatform.ts
 src/core/model.ts
 src/core/builders.ts
 src/core/validators.ts
 src/core/agent.ts
 src/core/plan.ts
+src/core/generator.ts
+src/core/generators/go-http.ts
 src/cli.ts
 src/index.ts
 ```
