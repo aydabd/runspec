@@ -40,7 +40,11 @@ function validateSourceOfTruth(framework: RunSpecApplicationBuilder, issues: Val
   require(!policy.externalSpecFrameworksAllowed, "sourceOfTruth.externalSpecFrameworksAllowed", "external markdown-first spec frameworks cannot be source of truth", issues);
   require(policy.generatedArtifactsAreReadOnlyForAgents, "sourceOfTruth.generatedArtifactsAreReadOnlyForAgents", "generated artifacts must be read-only for agents", issues);
   require(policy.generatedArtifactDirectory === ".runspec/generated", "sourceOfTruth.generatedArtifactDirectory", "generated artifacts must live under .runspec/generated", issues);
-  require(policy.handWrittenMarkdownFiles.length === 1 && policy.handWrittenMarkdownFiles[0] === "README.md", "sourceOfTruth.handWrittenMarkdownFiles", "only README.md may be hand-written markdown", issues);
+  const md = policy.markdownPolicy;
+  require(md.humanOnboarding.includes("README.md"), "sourceOfTruth.markdownPolicy.humanOnboarding", "README.md must be declared as a human-onboarding markdown file", issues);
+  require(md.humanOnboarding.every(path => path.length > 0 && !path.endsWith("/")), "sourceOfTruth.markdownPolicy.humanOnboarding", "human-onboarding entries must be non-empty file paths", issues);
+  require(md.agentRuntimeConfiguration.every(path => path.length > 0), "sourceOfTruth.markdownPolicy.agentRuntimeConfiguration", "agent-runtime-configuration entries must be non-empty", issues);
+  require(md.excludedDirectories.includes(".git") && md.excludedDirectories.includes("node_modules"), "sourceOfTruth.markdownPolicy.excludedDirectories", ".git and node_modules must be excluded from markdown scanning", issues);
 }
 
 function validateCollections(framework: RunSpecApplicationBuilder, issues: ValidationIssue[]): void {

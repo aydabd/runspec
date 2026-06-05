@@ -187,7 +187,7 @@ function verifyMarkdownPolicy(root: string): void {
     .filter(file => !file.startsWith("dist/"))
     .sort();
 
-  const allowed = new Set(runSpecFramework.sourceOfTruth.handWrittenMarkdownFiles);
+  const allowed = new Set(runSpecFramework.sourceOfTruth.markdownPolicy.humanOnboarding);
   const forbidden = markdownFiles.filter(
     file => !allowed.has(file) && !isLegacyBootstrapMarkdown(file),
   );

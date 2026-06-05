@@ -18,7 +18,11 @@ export const runSpecFramework = defineRunSpecFramework({
   purpose: "Build production applications from executable product definitions without markdown-first specification tools.",
   sourceOfTruth: sourceOfTruthPolicy({
     executableDefinitionsOnly: true,
-    handWrittenMarkdownFiles: ["README.md"],
+    markdownPolicy: {
+      humanOnboarding: ["README.md", "CONTRIBUTING.md", "SECURITY.md"],
+      agentRuntimeConfiguration: ["AGENT.md", "CLAUDE.md", ".claude/", ".github/"],
+      excludedDirectories: [".git", "node_modules", "dist", "build"],
+    },
     generatedArtifactDirectory: ".runspec/generated",
     generatedArtifactsAreReadOnlyForAgents: true,
     commentsAsSpecificationAllowed: false,
@@ -225,7 +229,7 @@ export const runSpecFramework = defineRunSpecFramework({
     qualityGate({ kind: "observability", name: "logs, metrics, traces, and correlation ids are verified", blocking: true, command: "runspec verify observability", evidence: ".runspec/generated/observability.json" }),
     qualityGate({ kind: "integration", name: "cross-service flows are verified", blocking: true, command: "runspec verify integration", evidence: ".runspec/generated/integration.json" }),
     qualityGate({ kind: "report", name: "reports and diagrams are generated from execution", blocking: true, command: "runspec report", evidence: ".runspec/generated/report.json" }),
-    qualityGate({ kind: "repository-hygiene", name: "only README.md is hand-written markdown", blocking: true, command: "runspec verify repository", evidence: ".runspec/generated/repository.json" }),
+    qualityGate({ kind: "repository-hygiene", name: "markdown files conform to source-of-truth policy", blocking: true, command: "runspec verify repository", evidence: ".runspec/generated/repository.json" }),
   ],
   harnesses: [
     verificationHarness({ kind: "unit", name: "unit behavior harness", generatedFor: ["domain", "application"], requiredForProduction: true }),
@@ -247,7 +251,7 @@ export const runSpecFramework = defineRunSpecFramework({
   agentPolicy: agentPolicy({
     agentReads: ["README.md", "src/**/*.ts"],
     allowedToModify: ["src/**", "test/**", "package.json", "tsconfig.json", ".github/workflows/**"],
-    deniedToModify: [".runspec/generated/**", "dist/**", "node_modules/**", "*.md", "!README.md"],
+    deniedToModify: [".runspec/generated/**", "dist/**", "node_modules/**"],
     requiredCommandsBeforeCompletion: ["npm test"],
     completionRequiresAllBlockingGates: true,
     nextTaskStrategy: "first-failing-gate",
