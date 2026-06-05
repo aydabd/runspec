@@ -50,7 +50,7 @@ function verifyBlueprint(): void {
 
 function verifyMarkdownPolicy(root: string): void {
   const markdownFiles = findFiles(root, file => extname(file) === ".md")
-    .map(file => file.replace(`${root}/`, ""))
+    .map(file => normalizeRepositoryPath(root, file))
     .filter(file => !file.startsWith(".git/"))
     .filter(file => !file.startsWith("dist/"))
     .sort();
@@ -67,6 +67,14 @@ function verifyMarkdownPolicy(root: string): void {
   }
 
   printJson({ valid: true, markdownFiles });
+}
+
+function normalizeRepositoryPath(root: string, file: string): string {
+  const normalizedRoot = root.split("\\").join("/");
+  const normalizedFile = file.split("\\").join("/");
+  const prefix = `${normalizedRoot}/`;
+
+  return normalizedFile.startsWith(prefix) ? normalizedFile.slice(prefix.length) : normalizedFile;
 }
 
 function isLegacyBootstrapMarkdown(file: string): boolean {
