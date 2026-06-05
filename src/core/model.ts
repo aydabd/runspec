@@ -234,3 +234,150 @@ export type ValidationResult = {
   readonly valid: boolean;
   readonly issues: readonly ValidationIssue[];
 };
+
+export type WorkPlan = {
+  readonly id: string;
+  readonly title: string;
+  readonly thesis: string;
+  readonly pr: PullRequestReference;
+  readonly constraints: readonly string[];
+  readonly commits: readonly PlannedCommit[];
+  readonly delivers: readonly string[];
+  readonly followUps: readonly FollowUpMilestone[];
+};
+
+export type PullRequestReference = {
+  readonly number: number;
+  readonly branch: string;
+};
+
+export type PlannedCommit = {
+  readonly id: string;
+  readonly subject: string;
+  readonly rationale: string;
+  readonly touches: readonly string[];
+  readonly mustNotTouch: readonly string[];
+  readonly acceptance: readonly AcceptanceCriterion[];
+};
+
+export type AcceptanceCriterion = {
+  readonly id: string;
+  readonly description: string;
+  readonly predicate: AcceptancePredicate;
+};
+
+export type AcceptancePredicate =
+  | ModuleExportPredicate
+  | FilePresentPredicate
+  | FileAbsentPredicate
+  | TsconfigFlagPredicate
+  | PackageJsonFieldPredicate
+  | NpmScriptPassesPredicate
+  | CliExitPredicate
+  | ReadmeMermaidBlocksPredicate
+  | PlanSelfValidatesPredicate;
+
+export type ModuleExportPredicate = {
+  readonly kind: "module-export";
+  readonly modulePath: string;
+  readonly exportName: string;
+  readonly check: "is-function" | "is-array" | "is-object";
+};
+
+export type FilePresentPredicate = {
+  readonly kind: "file-present";
+  readonly path: string;
+};
+
+export type FileAbsentPredicate = {
+  readonly kind: "file-absent";
+  readonly path: string;
+};
+
+export type TsconfigFlagPredicate = {
+  readonly kind: "tsconfig-flag";
+  readonly flag: string;
+  readonly expected: boolean;
+};
+
+export type PackageJsonFieldPredicate = {
+  readonly kind: "package-json-field";
+  readonly path: readonly string[];
+  readonly expected: unknown;
+};
+
+export type NpmScriptPassesPredicate = {
+  readonly kind: "npm-script-passes";
+  readonly script: string;
+};
+
+export type CliExitPredicate = {
+  readonly kind: "cli-exit";
+  readonly argv: readonly string[];
+  readonly cwd?: string;
+  readonly expectedExit: number;
+};
+
+export type ReadmeMermaidBlocksPredicate = {
+  readonly kind: "readme-mermaid-blocks";
+  readonly path: string;
+  readonly min: number;
+};
+
+export type PlanSelfValidatesPredicate = {
+  readonly kind: "plan-self-validates";
+};
+
+export type FollowUpMilestone = {
+  readonly id: string;
+  readonly title: string;
+  readonly thesis: string;
+  readonly outcomes: readonly string[];
+  readonly nonGoals: readonly string[];
+  readonly blockedBy: readonly string[];
+};
+
+export type AcceptancePredicateFailure = {
+  readonly predicateKind: AcceptancePredicate["kind"];
+  readonly criterionId: string;
+  readonly message: string;
+};
+
+export type CommitAcceptanceStatus = {
+  readonly id: string;
+  readonly accepted: boolean;
+  readonly failures: readonly AcceptancePredicateFailure[];
+};
+
+export type PlanStatus = {
+  readonly planId: string;
+  readonly commits: readonly CommitAcceptanceStatus[];
+  readonly followUps: readonly FollowUpSummary[];
+  readonly delivers: readonly string[];
+};
+
+export type FollowUpSummary = {
+  readonly id: string;
+  readonly title: string;
+  readonly blockedBy: readonly string[];
+};
+
+export type PlanStepTask = {
+  readonly id: string;
+  readonly subject: string;
+  readonly rationale: string;
+  readonly touches: readonly string[];
+  readonly mustNotTouch: readonly string[];
+  readonly acceptance: readonly AcceptanceCriterion[];
+  readonly failures: readonly AcceptancePredicateFailure[];
+};
+
+export type PlanEnvironment = {
+  readonly readFile: (path: string) => string;
+  readonly fileExists: (path: string) => boolean;
+  readonly importModule: (modulePath: string) => Promise<Record<string, unknown>>;
+  readonly runCli: (argv: readonly string[], cwd: string) => Promise<{ readonly exitCode: number }>;
+  readonly runNpmScript: (script: string, cwd: string) => Promise<{ readonly exitCode: number }>;
+  readonly validatePlan: (plan: WorkPlan) => ValidationResult;
+  readonly cwd: string;
+};

@@ -1,10 +1,24 @@
 import type {
+  AcceptancePredicate,
   ProductCapability,
   RunSpecApplicationBuilder,
   ThreatModel,
   ValidationIssue,
   ValidationResult,
+  WorkPlan,
 } from "./model.js";
+
+const acceptancePredicateKinds: ReadonlySet<AcceptancePredicate["kind"]> = new Set<AcceptancePredicate["kind"]>([
+  "module-export",
+  "file-present",
+  "file-absent",
+  "tsconfig-flag",
+  "package-json-field",
+  "npm-script-passes",
+  "cli-exit",
+  "readme-mermaid-blocks",
+  "plan-self-validates",
+]);
 
 export function validateRunSpecFramework(framework: RunSpecApplicationBuilder): ValidationResult {
   const issues: ValidationIssue[] = [];
@@ -90,4 +104,75 @@ function require(condition: boolean, path: string, message: string, issues: Vali
   if (!condition) {
     issues.push({ path, message });
   }
+}
+
+export function validateWorkPlan(plan: WorkPlan): ValidationResult {
+  const issues: ValidationIssue[] = [];
+
+  require(plan.id.length > 0, "plan.id", "plan id is required", issues);
+  require(plan.title.length > 0, "plan.title", "plan title is required", issues);
+  require(plan.thesis.length > 0, "plan.thesis", "plan thesis is required", issues);
+  require(plan.pr.number > 0, "plan.pr.number", "plan.pr.number must be positive", issues);
+  require(plan.pr.branch.length > 0, "plan.pr.branch", "plan.pr.branch is required", issues);
+  require(plan.commits.length > 0, "plan.commits", "plan must declare at least one commit", issues);
+
+  const commitIds = new Set<string>();
+  plan.commits.forEach((commit, index) => {
+    const base = `plan.commits[${index}]`;
+    if (commit.id.length === 0) {
+      issues.push({ path: `${base}.id`, message: "commit id is required" });
+    } else if (commitIds.has(commit.id)) {
+      issues.push({ path: `${base}.id`, message: `duplicate commit id: ${commit.id}` });
+    } else {
+      commitIds.add(commit.id);
+    }
+    require(commit.subject.length > 0, `${base}.subject`, "commit subject is required", issues);
+    require(commit.acceptance.length > 0, `${base}.acceptance`, "commit must declare at least one acceptance criterion", issues);
+
+    const criterionIds = new Set<string>();
+    commit.acceptance.forEach((criterion, ci) => {
+      const cbase = `${base}.acceptance[${ci}]`;
+      if (criterion.id.length === 0) {
+        issues.push({ path: `${cbase}.id`, message: "acceptance criterion id is required" });
+      } else if (criterionIds.has(criterion.id)) {
+        issues.push({ path: `${cbase}.id`, message: `duplicate acceptance criterion id: ${criterion.id}` });
+      } else {
+        criterionIds.add(criterion.id);
+      }
+      require(criterion.description.length > 0, `${cbase}.description`, "acceptance criterion description is required", issues);
+      if (!acceptancePredicateKinds.has(criterion.predicate.kind)) {
+        issues.push({ path: `${cbase}.predicate.kind`, message: `unknown acceptance predicate kind: ${String(criterion.predicate.kind)}` });
+      }
+    });
+  });
+
+  const followUpIds = new Set<string>();
+  plan.followUps.forEach((milestone, index) => {
+    const base = `plan.followUps[${index}]`;
+    if (milestone.id.length === 0) {
+      issues.push({ path: `${base}.id`, message: "followUp id is required" });
+    } else if (followUpIds.has(milestone.id)) {
+      issues.push({ path: `${base}.id`, message: `duplicate followUp id: ${milestone.id}` });
+    } else {
+      followUpIds.add(milestone.id);
+    }
+    require(milestone.title.length > 0, `${base}.title`, "followUp title is required", issues);
+    require(milestone.thesis.length > 0, `${base}.thesis`, "followUp thesis is required", issues);
+  });
+
+  plan.followUps.forEach((milestone, mi) => {
+    milestone.blockedBy.forEach((blockerId, bi) => {
+      if (!followUpIds.has(blockerId)) {
+        issues.push({ path: `plan.followUps[${mi}].blockedBy[${bi}]`, message: `unknown blockedBy followUp id: ${blockerId}` });
+      }
+    });
+  });
+
+  plan.delivers.forEach((deliveredId, i) => {
+    if (followUpIds.has(deliveredId)) {
+      issues.push({ path: `plan.delivers[${i}]`, message: `id "${deliveredId}" cannot be both delivered and listed as remaining followUp` });
+    }
+  });
+
+  return { valid: issues.length === 0, issues };
 }

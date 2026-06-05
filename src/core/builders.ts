@@ -1,8 +1,11 @@
 import type {
+  AcceptanceCriterion,
   AgentPolicy,
   DiagramTarget,
   EnterpriseApplicationExample,
+  FollowUpMilestone,
   InfrastructureAdapter,
+  PlannedCommit,
   ProductCapability,
   ProductFlow,
   QualityGate,
@@ -11,6 +14,7 @@ import type {
   SourceOfTruthPolicy,
   ThreatModel,
   VerificationHarness,
+  WorkPlan,
   WorkspaceCapability,
 } from "./model.js";
 
@@ -64,4 +68,20 @@ export function agentPolicy(policy: AgentPolicy): AgentPolicy {
 
 export function enterpriseApplicationExample(example: EnterpriseApplicationExample): EnterpriseApplicationExample {
   return example;
+}
+
+export function defineWorkPlan(plan: WorkPlan): WorkPlan {
+  return plan;
+}
+
+export function plannedCommit(commit: PlannedCommit): PlannedCommit {
+  return commit;
+}
+
+export function acceptanceCriterion(criterion: AcceptanceCriterion): AcceptanceCriterion {
+  return criterion;
+}
+
+export function followUpMilestone(milestone: FollowUpMilestone): FollowUpMilestone {
+  return milestone;
 }
