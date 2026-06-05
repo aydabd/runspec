@@ -38,6 +38,20 @@ test("sourceOfTruthRule rejects missing README in humanOnboarding", () => {
   assert.ok(issues.some(issue => issue.path === "sourceOfTruth.markdownPolicy.humanOnboarding"));
 });
 
+test("sourceOfTruthRule rejects directory-like agent-runtime entry missing trailing slash", () => {
+  const broken = override({
+    sourceOfTruth: {
+      ...runSpecFramework.sourceOfTruth,
+      markdownPolicy: {
+        ...runSpecFramework.sourceOfTruth.markdownPolicy,
+        agentRuntimeConfiguration: ["AGENT.md", "CLAUDE.md", "nested/dir", ".github/"],
+      },
+    },
+  });
+  const issues = sourceOfTruthRule(broken);
+  assert.ok(issues.some(issue => issue.message.includes("must end with")));
+});
+
 test("sourceOfTruthRule rejects when .git missing from excludedDirectories", () => {
   const broken = override({
     sourceOfTruth: {

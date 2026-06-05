@@ -1,25 +1,14 @@
 import type {
-  AcceptancePredicate,
   RunSpecApplicationBuilder,
   ValidationIssue,
   ValidationResult,
   WorkPlan,
 } from "./model.js";
+import { acceptancePredicateKinds } from "./model.js";
 
 export type ValidationRule = (framework: RunSpecApplicationBuilder) => readonly ValidationIssue[];
 
-const acceptancePredicateKinds: ReadonlySet<AcceptancePredicate["kind"]> = new Set<AcceptancePredicate["kind"]>([
-  "module-export",
-  "module-property-equals",
-  "file-present",
-  "file-absent",
-  "tsconfig-flag",
-  "package-json-field",
-  "npm-script-passes",
-  "cli-exit",
-  "readme-mermaid-blocks",
-  "plan-self-validates",
-]);
+const knownPredicateKinds: ReadonlySet<string> = new Set(acceptancePredicateKinds);
 
 export const sourceOfTruthRule: ValidationRule = framework => {
   const issues: ValidationIssue[] = [];
@@ -48,6 +37,13 @@ export const sourceOfTruthRule: ValidationRule = framework => {
   }
   if (!md.agentRuntimeConfiguration.every(path => path.length > 0)) {
     issues.push({ path: "sourceOfTruth.markdownPolicy.agentRuntimeConfiguration", message: "agent-runtime-configuration entries must be non-empty" });
+  }
+  const directoryLikeWithoutSlash = md.agentRuntimeConfiguration.filter(path => path.includes("/") && !path.endsWith("/"));
+  if (directoryLikeWithoutSlash.length > 0) {
+    issues.push({
+      path: "sourceOfTruth.markdownPolicy.agentRuntimeConfiguration",
+      message: `directory entries must end with "/" so the CLI classifier matches files inside them (offending: ${directoryLikeWithoutSlash.join(", ")})`,
+    });
   }
   if (!(md.excludedDirectories.includes(".git") && md.excludedDirectories.includes("node_modules"))) {
     issues.push({ path: "sourceOfTruth.markdownPolicy.excludedDirectories", message: ".git and node_modules must be excluded from markdown scanning" });
@@ -235,7 +231,7 @@ export function validateWorkPlan(plan: WorkPlan): ValidationResult {
         criterionIds.add(criterion.id);
       }
       if (criterion.description.length === 0) issues.push({ path: `${cbase}.description`, message: "acceptance criterion description is required" });
-      if (!acceptancePredicateKinds.has(criterion.predicate.kind)) {
+      if (!knownPredicateKinds.has(criterion.predicate.kind)) {
         issues.push({ path: `${cbase}.predicate.kind`, message: `unknown acceptance predicate kind: ${String(criterion.predicate.kind)}` });
       }
     });

@@ -343,6 +343,23 @@ export type PlanSelfValidatesPredicate = {
   readonly kind: "plan-self-validates";
 };
 
+export const acceptancePredicateKinds = [
+  "module-export",
+  "module-property-equals",
+  "file-present",
+  "file-absent",
+  "tsconfig-flag",
+  "package-json-field",
+  "npm-script-passes",
+  "cli-exit",
+  "readme-mermaid-blocks",
+  "plan-self-validates",
+] as const;
+
+type _NoMissingPredicateKinds = Exclude<AcceptancePredicate["kind"], typeof acceptancePredicateKinds[number]> extends never ? true : false;
+type _NoExtraPredicateKinds = typeof acceptancePredicateKinds[number] extends AcceptancePredicate["kind"] ? true : false;
+export const acceptancePredicateKindsAreExhaustive: _NoMissingPredicateKinds & _NoExtraPredicateKinds = true;
+
 export type FollowUpMilestone = {
   readonly id: string;
   readonly title: string;
