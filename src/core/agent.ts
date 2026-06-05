@@ -15,14 +15,28 @@ export function nextAgentTask(framework: RunSpecApplicationBuilder): AgentTask {
 
   if (!validation.valid) {
     const firstIssue = validation.issues[0];
+    const deniedFiles = uniqueValues([
+      ...framework.agentPolicy.deniedToModify,
+      ".runspec/generated/**",
+      "dist/**",
+      "node_modules/**",
+    ]);
+    const commands = uniqueValues([
+      ...framework.agentPolicy.requiredCommandsBeforeCompletion,
+      "npm test",
+    ]);
 
     return {
       title: "Fix executable RunSpec framework definition",
       reason: `${firstIssue?.path ?? "unknown"}: ${firstIssue?.message ?? "validation failed"}`,
-      allowedFiles: framework.agentPolicy.allowedToModify,
-      deniedFiles: framework.agentPolicy.deniedToModify,
-      commands: framework.agentPolicy.requiredCommandsBeforeCompletion,
-      acceptance: ["RunSpec blueprint validation passes", "repository hygiene gate passes"],
+      allowedFiles: ["src/**", "test/**", "package.json", "tsconfig.json", ".github/workflows/**"],
+      deniedFiles,
+      commands,
+      acceptance: [
+        "manual review confirms the remediation scope",
+        "RunSpec blueprint validation passes",
+        "repository hygiene gate passes",
+      ],
     };
   }
 
@@ -38,4 +52,8 @@ export function nextAgentTask(framework: RunSpecApplicationBuilder): AgentTask {
 
 function acceptanceForAllBlockingGates(gates: readonly GateKind[]): readonly string[] {
   return gates.map(gate => `${gate} gate passes`);
+}
+
+function uniqueValues(values: readonly string[]): readonly string[] {
+  return [...new Set(values)];
 }
