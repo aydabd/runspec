@@ -23,7 +23,7 @@
     "verify:blueprint": "npm run build && node dist/src/cli.js verify-blueprint",
     "blueprint:print": "npm run build && node dist/src/cli.js blueprint-print",
     "agent:next": "npm run build && node dist/src/cli.js agent-next",
-    "test": "npm run build && node --test dist/test/*.test.js && node dist/src/cli.js verify-markdown && node dist/src/cli.js verify-blueprint"
+    "test": "npm run build && node --test dist/test/*.test.js dist/test/generators/*.test.js && node dist/src/cli.js verify-markdown && node dist/src/cli.js verify-blueprint"
   },
   "engines": {
     "node": ">=24.0.0"
