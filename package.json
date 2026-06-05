@@ -4,6 +4,19 @@
   "description": "Executable enterprise application builder for production-ready systems.",
   "type": "module",
   "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./cli": "./dist/src/cli.js"
+  },
+  "bin": {
+    "runspec": "dist/src/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --noEmit false",
     "verify:markdown": "npm run build && node dist/src/cli.js verify-markdown",
