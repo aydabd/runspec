@@ -133,6 +133,17 @@ test("springBootGenerator prefixes digit-leading class names so they are valid J
   }
 });
 
+test("springBootGenerator sanitises control characters in capability and service ids before embedding in headers", () => {
+  const capabilityWithControlId = { ...capability, id: "BAD\nID\tWITH\rCONTROL" };
+  const serviceWithControlId = { ...service, id: "svc\nname" };
+  const files = springBootGenerator.generate(capabilityWithControlId, serviceWithControlId);
+  for (const file of files) {
+    const sourceLine = file.content.split("\n").find(line => line.includes("Source: capability"));
+    assert.ok(sourceLine, `missing Source header in ${file.path}`);
+    assert.ok(!/[\r\t]/.test(sourceLine), `control character leaked into header of ${file.path}: ${JSON.stringify(sourceLine)}`);
+  }
+});
+
 test("springBootGenerator escapes newlines and tabs in scenario titles", () => {
   const scenarioWithControls = {
     ...capability,

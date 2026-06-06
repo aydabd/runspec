@@ -16,7 +16,7 @@ const pr3: WorkPlan = defineWorkPlan({
   id: "pr-3-skeleton-generator-spring-boot",
   title: "Spring Boot service skeleton template",
   thesis:
-    "Add the Java Spring Boot generator to the skeleton-generator registry, mirroring the Go reference. Emits a Maven-Spring Boot project with @SpringBootApplication entry point, domain/application/ports/adapters/repositories/controllers packages, and one @Disabled JUnit 5 test class per scenario.",
+    "Add the Java Spring Boot generator to the skeleton-generator registry, mirroring the Go reference. Emits a Gradle Kotlin DSL Spring Boot project (build.gradle.kts + settings.gradle.kts) with @SpringBootApplication entry point, domain/application/ports/adapters/repositories/controllers packages, and one @Disabled JUnit 5 test class per scenario.",
   pr: { number: 3, branch: "feat/skeleton-generator-spring-boot" },
   constraints: [
     "no Claude/Anthropic attribution anywhere",

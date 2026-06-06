@@ -75,6 +75,20 @@ test("goHttpGenerator sanitises path separators and dot segments in identifiers"
   }
 });
 
+test("goHttpGenerator sanitises control characters in capability and service ids before embedding in headers", () => {
+  const capabilityWithControlId = { ...capability, id: "BAD\nID\tWITH\rCONTROL" };
+  const serviceWithControlId = { ...service, id: "svc\nname" };
+  const files = goHttpGenerator.generate(capabilityWithControlId, serviceWithControlId);
+  for (const file of files) {
+    if (file.path === "go.mod") {
+      continue;
+    }
+    const sourceLine = file.content.split("\n").find(line => line.startsWith("// Source:"));
+    assert.ok(sourceLine, `missing Source header in ${file.path}`);
+    assert.ok(!/[\r\t]/.test(sourceLine), `control character leaked into header of ${file.path}: ${JSON.stringify(sourceLine)}`);
+  }
+});
+
 test("goHttpGenerator escapes backslashes in scenario titles", () => {
   const scenarioWithBackslash = {
     ...capability,
