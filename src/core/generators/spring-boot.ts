@@ -19,7 +19,9 @@ export const springBootGenerator: SkeletonGenerator = skeletonGenerator({
     const header = generatedHeader(capability, service);
     const files: GeneratedFile[] = [];
 
-    files.push({ path: "pom.xml", content: pomXml(service.id) });
+    const projectName = gradleProjectName(service.id);
+    files.push({ path: "build.gradle.kts", content: buildGradle(header) });
+    files.push({ path: "settings.gradle.kts", content: settingsGradle(header, projectName) });
     files.push({
       path: `src/main/java/${packagePath}/${mainClassName}.java`,
       content: applicationFile(header, packageName, mainClassName),
@@ -86,45 +88,44 @@ function generatedHeader(capability: ProductCapability, service: ServiceTarget):
   ].join("\n");
 }
 
-function pomXml(artifactId: string): string {
+function buildGradle(header: string): string {
   return [
-    `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<project xmlns="http://maven.apache.org/POM/4.0.0"`,
-    `         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`,
-    `         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">`,
-    `  <modelVersion>4.0.0</modelVersion>`,
-    `  <parent>`,
-    `    <groupId>org.springframework.boot</groupId>`,
-    `    <artifactId>spring-boot-starter-parent</artifactId>`,
-    `    <version>4.0.0</version>`,
-    `    <relativePath/>`,
-    `  </parent>`,
-    `  <groupId>com.example</groupId>`,
-    `  <artifactId>${escapeXml(artifactId)}</artifactId>`,
-    `  <version>0.1.0</version>`,
-    `  <properties>`,
-    `    <java.version>25</java.version>`,
-    `  </properties>`,
-    `  <dependencies>`,
-    `    <dependency>`,
-    `      <groupId>org.springframework.boot</groupId>`,
-    `      <artifactId>spring-boot-starter-web</artifactId>`,
-    `    </dependency>`,
-    `    <dependency>`,
-    `      <groupId>org.springframework.boot</groupId>`,
-    `      <artifactId>spring-boot-starter-test</artifactId>`,
-    `      <scope>test</scope>`,
-    `    </dependency>`,
-    `  </dependencies>`,
-    `  <build>`,
-    `    <plugins>`,
-    `      <plugin>`,
-    `        <groupId>org.springframework.boot</groupId>`,
-    `        <artifactId>spring-boot-maven-plugin</artifactId>`,
-    `      </plugin>`,
-    `    </plugins>`,
-    `  </build>`,
-    `</project>`,
+    header,
+    `plugins {`,
+    `    id("org.springframework.boot") version "4.0.0"`,
+    `    id("io.spring.dependency-management") version "1.1.6"`,
+    `    java`,
+    `}`,
+    "",
+    `group = "com.example"`,
+    `version = "0.1.0"`,
+    "",
+    `java {`,
+    `    toolchain {`,
+    `        languageVersion = JavaLanguageVersion.of(25)`,
+    `    }`,
+    `}`,
+    "",
+    `repositories {`,
+    `    mavenCentral()`,
+    `}`,
+    "",
+    `dependencies {`,
+    `    implementation("org.springframework.boot:spring-boot-starter-web")`,
+    `    testImplementation("org.springframework.boot:spring-boot-starter-test")`,
+    `}`,
+    "",
+    `tasks.test {`,
+    `    useJUnitPlatform()`,
+    `}`,
+    "",
+  ].join("\n");
+}
+
+function settingsGradle(header: string, projectName: string): string {
+  return [
+    header,
+    `rootProject.name = "${projectName}"`,
     "",
   ].join("\n");
 }
@@ -223,7 +224,12 @@ function controllerFile(header: string, packageName: string): string {
 }
 
 function scenarioTestFile(header: string, packageName: string, className: string, scenarioTitle: string): string {
-  const escapedTitle = scenarioTitle.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  const escapedTitle = scenarioTitle
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, "\\\"")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t");
   return [
     header,
     `package ${packageName};`,
@@ -239,6 +245,15 @@ function scenarioTestFile(header: string, packageName: string, className: string
     "}",
     "",
   ].join("\n");
+}
+
+function gradleProjectName(input: string): string {
+  const normalised = input
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[.-]+|[.-]+$/g, "")
+    .replace(/-+/g, "-");
+  return normalised.length > 0 ? normalised : "service";
 }
 
 function javaPackageSegment(input: string): string {
@@ -262,14 +277,7 @@ function pascalCase(input: string): string {
   if (parts.length === 0) {
     return "Unnamed";
   }
-  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
+  const candidate = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
+  return /^[A-Za-z_]/.test(candidate) ? candidate : `S${candidate}`;
 }
 
-function escapeXml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}

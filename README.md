@@ -154,8 +154,9 @@ Generated layout per template:
 - **Go HTTP** (`go-http-service`): `go.mod`, `main.go`, `domain/`,
   `usecases/`, `ports/`, `adapters/`, `repositories/`, `http/handler.go`,
   `tests/<scenario>_test.go`.
-- **Spring Boot** (`spring-boot-service`): `pom.xml` (Spring Boot 4.0,
-  Java 25), `src/main/java/<package>/<ServiceName>Application.java`,
+- **Spring Boot** (`spring-boot-service`): `build.gradle.kts` (Spring Boot
+  4.0, Java 25, Gradle Kotlin DSL), `settings.gradle.kts`,
+  `src/main/java/<package>/<ServiceName>Application.java`,
   `src/main/java/<package>/domain/`, `application/`, `ports/`, `adapters/`,
   `repositories/`, `controllers/HelloController.java`,
   `src/test/java/<package>/<Scenario>Test.java` (`@Disabled` JUnit 5 stubs).
