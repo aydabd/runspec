@@ -5,6 +5,7 @@ import type {
   SkeletonGenerator,
 } from "../model.js";
 import { skeletonGenerator } from "../builders.js";
+import { pascalCase, sanitiseForComment } from "./_shared.js";
 
 export const springBootGenerator: SkeletonGenerator = skeletonGenerator({
   id: "spring-boot",
@@ -88,9 +89,6 @@ function generatedHeader(capability: ProductCapability, service: ServiceTarget):
   ].join("\n");
 }
 
-function sanitiseForComment(input: string): string {
-  return input.replace(/[\r\n\t]+/g, " ");
-}
 
 function buildGradle(header: string): string {
   return [
@@ -270,17 +268,3 @@ function javaPackageSegment(input: string): string {
   return /^[0-9]/.test(cleaned) ? `s${cleaned}` : cleaned;
 }
 
-function pascalCase(input: string): string {
-  const parts = input
-    .replace(/[-_]+/g, " ")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-    .replace(/[^A-Za-z0-9 ]/g, " ")
-    .split(/\s+/)
-    .filter(part => part.length > 0);
-  if (parts.length === 0) {
-    return "Unnamed";
-  }
-  const candidate = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
-  return /^[A-Za-z_]/.test(candidate) ? candidate : `S${candidate}`;
-}

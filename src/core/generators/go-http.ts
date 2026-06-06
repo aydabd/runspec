@@ -5,6 +5,7 @@ import type {
   SkeletonGenerator,
 } from "../model.js";
 import { skeletonGenerator } from "../builders.js";
+import { pascalCase, sanitiseForComment } from "./_shared.js";
 
 export const goHttpGenerator: SkeletonGenerator = skeletonGenerator({
   id: "go-http",
@@ -56,9 +57,6 @@ function generatedHeader(capability: ProductCapability, service: ServiceTarget):
   ].join("\n");
 }
 
-function sanitiseForComment(input: string): string {
-  return input.replace(/[\r\n\t]+/g, " ");
-}
 
 function goMod(moduleName: string): string {
   return [`module ${moduleName}`, "", "go 1.26", ""].join("\n");
@@ -180,16 +178,4 @@ function snakeCase(input: string): string {
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");
   return sanitised.length > 0 ? sanitised : "unnamed";
-}
-
-function pascalCase(input: string): string {
-  const parts = input
-    .replace(/[-_]+/g, " ")
-    .replace(/[^A-Za-z0-9 ]/g, " ")
-    .split(/\s+/)
-    .filter(part => part.length > 0);
-  if (parts.length === 0) {
-    return "Unnamed";
-  }
-  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
 }
