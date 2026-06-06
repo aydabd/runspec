@@ -45,6 +45,8 @@ export { generate, writeGenerationResult, GenerationError } from "./core/generat
 
 export { goHttpGenerator } from "./core/generators/go-http.js";
 
+export { goWorkerGenerator } from "./core/generators/go-worker.js";
+
 export { nodeHttpGenerator } from "./core/generators/node-http.js";
 
 export { springBootGenerator } from "./core/generators/spring-boot.js";
