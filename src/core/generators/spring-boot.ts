@@ -280,4 +280,3 @@ function pascalCase(input: string): string {
   const candidate = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
   return /^[A-Za-z_]/.test(candidate) ? candidate : `S${candidate}`;
 }
-
