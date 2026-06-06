@@ -122,11 +122,11 @@ repository safety check failed.
 ## Generating service skeletons
 
 `runspec generate` turns a typed `ProductCapability` plus a `ServiceTarget`
-into a deterministic set of source files. Today two generators ship in the
-default registry — `goHttpGenerator` (`go:go-http`) and
-`springBootGenerator` (`java:spring-boot`). Node HTTP, React, and Go worker
-templates are declared as `FollowUpMilestone` entries in the active plan
-and will land in subsequent PRs.
+into a deterministic set of source files. Today three generators ship in the
+default registry — `goHttpGenerator` (`go:go-http`),
+`springBootGenerator` (`java:spring-boot`), and `nodeHttpGenerator`
+(`typescript:node-http`). React and Go worker templates are declared as
+`FollowUpMilestone` entries in the active plan and will land in subsequent PRs.
 
 ```bash
 # Inspect what would be written, without touching the filesystem
@@ -160,6 +160,11 @@ Generated layout per template:
   `src/main/java/<package>/domain/`, `application/`, `ports/`, `adapters/`,
   `repositories/`, `controllers/HelloController.java`,
   `src/test/java/<package>/<Scenario>Test.java` (`@Disabled` JUnit 5 stubs).
+- **Node.js HTTP** (`typescript-node-service`): `package.json`
+  (Node >=24, TypeScript 5), `tsconfig.json` (ES2024, strict+), `src/main.ts`
+  (createServer + Handler), `src/domain/`, `src/usecases/`, `src/ports/`,
+  `src/adapters/`, `src/repositories/`, `src/http/handler.ts`,
+  `test/<Scenario>.test.ts` (`node:test` skipped stubs).
 
 Every file carries a deterministic generated-by header citing the source
 capability and service ids. Generators sanitise identifiers so a hostile
@@ -251,18 +256,18 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PRs #1–#3):** typed domain model, identity builders, validator
+**Today (PRs #1–#4):** typed domain model, identity builders, validator
 with a rule registry, agent-task emitter, hardened CLI (strict argv parsing,
 safe fs walk, distinct exit codes, path-traversal-safe writer), public API
 surface, WorkPlan domain, the self-verifying executable plans in
-`src/plans/pr<N>.ts`, and the skeleton generator abstraction with two
-shipped templates: Go HTTP and Spring Boot.
+`src/plans/pr<N>.ts`, and the skeleton generator abstraction with three
+shipped templates: Go HTTP, Spring Boot (Gradle Kotlin DSL), and
+Node.js HTTP (TypeScript).
 
-**Next milestones** (see `runspec list-followups --plan src/plans/pr3.ts`):
-skeleton-generator-node-http, skeleton-generator-react,
-skeleton-generator-go-worker, harness-runner, gate-executor,
-frontend-coverage, watch-mode, npm-publish, eslint-or-biome-config,
-ci-coverage-gating, makefile-language-adapters,
+**Next milestones** (see `runspec list-followups --plan src/plans/pr4.ts`):
+skeleton-generator-react, skeleton-generator-go-worker, harness-runner,
+gate-executor, frontend-coverage, watch-mode, npm-publish,
+eslint-or-biome-config, ci-coverage-gating, makefile-language-adapters,
 additional-agent-task-shapes, cross-agent-policy-export.
 
 ## Main executable files
@@ -272,6 +277,7 @@ src/blueprint/runSpecFramework.ts
 src/plans/pr1.ts
 src/plans/pr2.ts
 src/plans/pr3.ts
+src/plans/pr4.ts
 src/examples/loanPlatform.ts
 src/core/model.ts
 src/core/builders.ts
@@ -279,7 +285,9 @@ src/core/validators.ts
 src/core/agent.ts
 src/core/plan.ts
 src/core/generator.ts
+src/core/generators/_shared.ts
 src/core/generators/go-http.ts
+src/core/generators/node-http.ts
 src/core/generators/spring-boot.ts
 src/cli.ts
 src/index.ts
