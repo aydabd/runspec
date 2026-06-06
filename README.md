@@ -114,6 +114,7 @@ runspec list-followups --plan src/plans/pr1.ts
 runspec agent-next
 runspec blueprint-print
 runspec generate --capability APPLICATION_BUILDER --service go-http-service --dry-run
+runspec run-harnesses --dry-run
 ```
 
 Exit codes: `0` success, `1` policy or validation failure, `2` usage error or
@@ -178,6 +179,29 @@ Every file carries a deterministic generated-by header citing the source
 capability and service ids. Generators sanitise identifiers so a hostile
 blueprint cannot produce paths that escape the output directory, and the CLI
 `createFileWriter` enforces the same boundary as a defense-in-depth check.
+
+## Running verification harnesses
+
+Each `VerificationHarness` in the blueprint carries a typed
+`HarnessCommand { program, args }` and an `evidenceDir`. The CLI runs them
+via `spawnSync` with `shell: false` (no shell expansion) and writes one
+JSON evidence file per result:
+
+```bash
+# List which harnesses would run without spawning anything
+runspec run-harnesses --dry-run
+
+# Run every declared harness; exit 0 if all pass, 1 if any fail
+runspec run-harnesses
+
+# Run only the harnesses listed by a single scenario
+runspec run-harnesses --scenario APPLICATION_BUILDER-001
+```
+
+Evidence files land under each harness's `evidenceDir` (default
+`.runspec/generated/evidence/<kind>/`). The default writer validates that
+the resolved path stays inside the repository root, so a hostile blueprint
+cannot direct evidence writes outside the working tree.
 
 ## Use runspec in your project
 
@@ -264,18 +288,18 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PRs #1–#5):** typed domain model, identity builders, validator
+**Today (PRs #1–#6):** typed domain model, identity builders, validator
 with a rule registry, agent-task emitter, hardened CLI (strict argv parsing,
 safe fs walk, distinct exit codes, path-traversal-safe writer), public API
 surface, WorkPlan domain, the self-verifying executable plans in
-`src/plans/pr<N>.ts`, and the skeleton generator abstraction with four
-shipped templates: Go HTTP, Go worker, Spring Boot (Gradle Kotlin DSL),
-and Node.js HTTP (TypeScript).
+`src/plans/pr<N>.ts`, the skeleton generator abstraction with four shipped
+templates (Go HTTP, Go worker, Spring Boot, Node.js HTTP), and the
+verification harness runner with structured commands + evidence files.
 
-**Next milestones** (see `runspec list-followups --plan src/plans/pr5.ts`):
-skeleton-generator-react (blocked by frontend-coverage), harness-runner,
-gate-executor, frontend-coverage, watch-mode, npm-publish,
-eslint-or-biome-config, ci-coverage-gating, makefile-language-adapters,
+**Next milestones** (see `runspec list-followups --plan src/plans/pr6.ts`):
+skeleton-generator-react (blocked by frontend-coverage), gate-executor,
+frontend-coverage, watch-mode, npm-publish, eslint-or-biome-config,
+ci-coverage-gating, makefile-language-adapters,
 additional-agent-task-shapes, cross-agent-policy-export.
 
 ## Main executable files
@@ -287,12 +311,14 @@ src/plans/pr2.ts
 src/plans/pr3.ts
 src/plans/pr4.ts
 src/plans/pr5.ts
+src/plans/pr6.ts
 src/examples/loanPlatform.ts
 src/core/model.ts
 src/core/builders.ts
 src/core/validators.ts
 src/core/agent.ts
 src/core/plan.ts
+src/core/runner.ts
 src/core/generator.ts
 src/core/generators/_shared.ts
 src/core/generators/go-http.ts
