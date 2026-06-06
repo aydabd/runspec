@@ -1,0 +1,121 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { runSpecFramework } from "../../src/blueprint/runSpecFramework.js";
+import { goWorkerGenerator } from "../../src/core/generators/go-worker.js";
+
+const capability = runSpecFramework.productCapabilities.find(entry => entry.id === "APPLICATION_BUILDER");
+const service = runSpecFramework.serviceTargets.find(entry => entry.id === "event-worker");
+if (capability === undefined || service === undefined) {
+  throw new Error("test fixture missing APPLICATION_BUILDER or event-worker");
+}
+
+test("goWorkerGenerator emits a deterministic file set", () => {
+  const a = goWorkerGenerator.generate(capability, service);
+  const b = goWorkerGenerator.generate(capability, service);
+  assert.deepEqual(a, b);
+});
+
+test("goWorkerGenerator produces go.mod with the expected module path and Go 1.26", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const goMod = files.find(file => file.path === "go.mod");
+  assert.ok(goMod);
+  assert.match(goMod.content, /module example\.com\/event-worker/);
+  assert.match(goMod.content, /go 1\.26/);
+});
+
+test("goWorkerGenerator main.go uses signal.NotifyContext for graceful shutdown", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const main = files.find(file => file.path === "main.go");
+  assert.ok(main);
+  assert.match(main.content, /signal\.NotifyContext/);
+  assert.match(main.content, /syscall\.SIGTERM/);
+});
+
+test("goWorkerGenerator emits one event-consumer per declared event", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const consumers = files.filter(file => file.path.startsWith("event-consumers/"));
+  assert.equal(consumers.length, capability.contracts.events.length);
+  for (const consumer of consumers) {
+    assert.match(consumer.content, /package eventconsumers/);
+    assert.match(consumer.content, /Consumer interface \{/);
+    assert.match(consumer.content, /Consume\(payload \[\]byte\) error/);
+  }
+});
+
+test("goWorkerGenerator emits one event-producer per declared event", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const producers = files.filter(file => file.path.startsWith("event-producers/"));
+  assert.equal(producers.length, capability.contracts.events.length);
+  for (const producer of producers) {
+    assert.match(producer.content, /package eventproducers/);
+    assert.match(producer.content, /Producer interface \{/);
+    assert.match(producer.content, /Produce\(payload \[\]byte\) error/);
+  }
+});
+
+test("goWorkerGenerator emits one idempotency KeyExtractor per consumed event", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const keys = files.filter(file => file.path.startsWith("idempotency/"));
+  assert.equal(keys.length, capability.contracts.events.length);
+  for (const file of keys) {
+    assert.match(file.content, /package idempotency/);
+    assert.match(file.content, /KeyExtractor interface \{/);
+    assert.match(file.content, /Key\(payload \[\]byte\) \(string, error\)/);
+  }
+});
+
+test("goWorkerGenerator emits one handler per scenario", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const handlers = files.filter(file => file.path.startsWith("handlers/"));
+  assert.equal(handlers.length, capability.scenarios.length);
+  for (const handler of handlers) {
+    assert.match(handler.content, /package handlers/);
+    assert.match(handler.content, /Handle\(payload \[\]byte\) error/);
+  }
+});
+
+test("goWorkerGenerator emits a BrokerConfig that does not pin a specific client library", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const broker = files.find(file => file.path === "config/broker.go");
+  assert.ok(broker);
+  assert.match(broker.content, /type BrokerConfig struct/);
+  assert.ok(!broker.content.includes("kafka-go"), "kafka client library leaked into generated config");
+  assert.ok(!broker.content.includes("amqp"), "rabbitmq client library leaked into generated config");
+  assert.ok(!broker.content.includes("import "), "no imports expected in library-light config skeleton");
+});
+
+test("goWorkerGenerator emits one t.Skip test stub per scenario", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const testFiles = files.filter(file => file.path.startsWith("tests/"));
+  assert.equal(testFiles.length, capability.scenarios.length);
+  for (const testFile of testFiles) {
+    assert.match(testFile.content, /package tests/);
+    assert.match(testFile.content, /t\.Skip/);
+  }
+});
+
+test("goWorkerGenerator includes the generated-by header citing capability and service in every file", () => {
+  const files = goWorkerGenerator.generate(capability, service);
+  const expectedCitation = `capability "${capability.id}", service "${service.id}"`;
+  for (const file of files) {
+    if (file.path === "go.mod") {
+      continue;
+    }
+    assert.match(file.content, /Code generated by runspec\. DO NOT EDIT\./);
+    assert.ok(file.content.includes(expectedCitation), `missing citation in ${file.path}`);
+  }
+});
+
+test("goWorkerGenerator sanitises control characters in capability and service ids", () => {
+  const capabilityWithControlId = { ...capability, id: "BAD\nID\tCONTROL" };
+  const serviceWithControlId = { ...service, id: "svc\nname" };
+  const files = goWorkerGenerator.generate(capabilityWithControlId, serviceWithControlId);
+  for (const file of files) {
+    if (file.path === "go.mod") {
+      continue;
+    }
+    const sourceLine = file.content.split("\n").find(line => line.startsWith("// Source:"));
+    assert.ok(sourceLine, `missing Source header in ${file.path}`);
+    assert.ok(!/[\r\t]/.test(sourceLine), `control char leaked into header of ${file.path}`);
+  }
+});
