@@ -33,5 +33,14 @@ export const loanPlatformExample = enterpriseApplicationExample({
       publishesEvents: ["disbursement.created"],
       storesDataIn: ["postgres"],
     },
+    {
+      id: "borrower-portal",
+      language: "typescript",
+      framework: "react-spa",
+      ownsCapabilities: ["SUBMIT_APPLICATION", "VIEW_DECISION"],
+      consumesEvents: [],
+      publishesEvents: [],
+      storesDataIn: [],
+    },
   ],
 });

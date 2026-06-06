@@ -1,9 +1,47 @@
 export type WorkspaceMode = "single-service" | "monorepo" | "multi-repo" | "hybrid";
 export type ServiceLanguage = "go" | "java" | "typescript";
-export type ServiceFramework = "go-http" | "spring-boot" | "node-http" | "worker";
+export type ServiceFramework =
+  | "go-http"
+  | "spring-boot"
+  | "node-http"
+  | "worker"
+  | "react-spa"
+  | "next"
+  | "vue";
 export type InfrastructureKind = "postgres" | "kafka" | "rabbitmq" | "redis" | "vault" | "object-storage";
-export type GateKind = "requirement" | "implementation" | "architecture" | "api" | "messaging" | "database" | "security" | "threat-model" | "observability" | "integration" | "report" | "repository-hygiene";
-export type HarnessKind = "unit" | "domain" | "api" | "contract" | "event-producer" | "event-consumer" | "database" | "security" | "threat-model" | "architecture" | "observability" | "integration" | "e2e";
+export type GateKind =
+  | "requirement"
+  | "implementation"
+  | "architecture"
+  | "api"
+  | "messaging"
+  | "database"
+  | "security"
+  | "threat-model"
+  | "observability"
+  | "integration"
+  | "report"
+  | "repository-hygiene"
+  | "accessibility"
+  | "frontend-security";
+export type HarnessKind =
+  | "unit"
+  | "domain"
+  | "api"
+  | "contract"
+  | "event-producer"
+  | "event-consumer"
+  | "database"
+  | "security"
+  | "threat-model"
+  | "architecture"
+  | "observability"
+  | "integration"
+  | "e2e"
+  | "ui-component"
+  | "accessibility"
+  | "visual-regression"
+  | "bundle-size";
 export type DiagramKind = "flowchart" | "sequence" | "component" | "deployment" | "threat-model";
 export type DeliveryGuarantee = "at-most-once" | "at-least-once" | "exactly-once";
 export type DataClassification = "public" | "internal" | "confidential" | "restricted";

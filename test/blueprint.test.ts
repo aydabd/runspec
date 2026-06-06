@@ -39,8 +39,11 @@ test("acceptanceForBlockingGates filters non-blocking gates", () => {
   assert.deepEqual(result, ["requirement gate passes", "security gate passes"]);
 });
 
-test("RunSpec example supports enterprise multi-service topology", () => {
+test("RunSpec example supports enterprise multi-service topology with a frontend", () => {
   assert.equal(loanPlatformExample.workspaceMode, "monorepo");
-  assert.equal(loanPlatformExample.services.length, 3);
+  assert.equal(loanPlatformExample.services.length, 4);
   assert.deepEqual(loanPlatformExample.infrastructure, ["postgres", "rabbitmq", "kafka", "redis", "vault"]);
+  const frontend = loanPlatformExample.services.find(service => service.framework === "react-spa");
+  assert.ok(frontend, "expected a react-spa frontend service");
+  assert.equal(frontend.language, "typescript");
 });
