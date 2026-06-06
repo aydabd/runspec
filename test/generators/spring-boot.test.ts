@@ -24,6 +24,14 @@ test("springBootGenerator pom.xml carries the artifact id and spring-boot-starte
   assert.match(pom.content, /<artifactId>spring-boot-starter-web<\/artifactId>/);
 });
 
+test("springBootGenerator pom.xml pins Spring Boot 4.0.0 and Java 25", () => {
+  const files = springBootGenerator.generate(capability, service);
+  const pom = files.find(file => file.path === "pom.xml");
+  assert.ok(pom);
+  assert.match(pom.content, /<version>4\.0\.0<\/version>/);
+  assert.match(pom.content, /<java\.version>25<\/java\.version>/);
+});
+
 test("springBootGenerator emits the @SpringBootApplication entry point with the service-derived class", () => {
   const files = springBootGenerator.generate(capability, service);
   const app = files.find(file => file.path.endsWith("SpringBootServiceApplication.java"));

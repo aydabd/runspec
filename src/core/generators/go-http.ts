@@ -57,7 +57,7 @@ function generatedHeader(capability: ProductCapability, service: ServiceTarget):
 }
 
 function goMod(moduleName: string): string {
-  return [`module ${moduleName}`, "", "go 1.22", ""].join("\n");
+  return [`module ${moduleName}`, "", "go 1.26", ""].join("\n");
 }
 
 function mainGo(header: string, moduleName: string): string {

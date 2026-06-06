@@ -20,7 +20,7 @@ test("goHttpGenerator produces go.mod with the expected module path", () => {
   const goMod = files.find(file => file.path === "go.mod");
   assert.ok(goMod);
   assert.match(goMod.content, /module example\.com\/go-http-service/);
-  assert.match(goMod.content, /go 1\.22/);
+  assert.match(goMod.content, /go 1\.26/);
 });
 
 test("goHttpGenerator emits one domain file per declared domain object", () => {
