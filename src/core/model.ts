@@ -277,6 +277,40 @@ export type GenerationResult = {
 
 export type FileWriter = (outputRoot: string, relativePath: string, content: string) => void;
 
+export type HarnessRunOutcome = {
+  readonly exitCode: number;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly durationMs: number;
+};
+
+export type HarnessEnvironment = {
+  readonly run: (command: HarnessCommand, cwd: string) => HarnessRunOutcome;
+  readonly writeEvidence: (evidenceDir: string, fileName: string, content: string) => string;
+  readonly now: () => string;
+  readonly cwd: string;
+};
+
+export type HarnessResult = {
+  readonly kind: HarnessKind;
+  readonly name: string;
+  readonly command: HarnessCommand;
+  readonly exitCode: number;
+  readonly passed: boolean;
+  readonly durationMs: number;
+  readonly evidencePath: string;
+};
+
+export type HarnessReport = {
+  readonly results: readonly HarnessResult[];
+  readonly passed: boolean;
+};
+
+export type HarnessRunOptions = {
+  readonly scenarioId?: string;
+  readonly dryRun?: boolean;
+};
+
 export type WorkPlan = {
   readonly id: string;
   readonly title: string;
