@@ -3,18 +3,18 @@ import assert from "node:assert/strict";
 import { runSpecFramework } from "../src/blueprint/runSpecFramework.js";
 import { runHarnesses } from "../src/core/runner.js";
 import type {
-  HarnessCommand,
+  Command,
   HarnessEnvironment,
   HarnessRunOutcome,
 } from "../src/core/model.js";
 
 type Capture = {
-  readonly commands: HarnessCommand[];
+  readonly commands: Command[];
   readonly evidenceWrites: Array<{ dir: string; fileName: string; content: string }>;
 };
 
 function makeStubEnvironment(
-  outcomeFor: (command: HarnessCommand) => HarnessRunOutcome,
+  outcomeFor: (command: Command) => HarnessRunOutcome,
 ): { env: HarnessEnvironment; capture: Capture } {
   const capture: Capture = { commands: [], evidenceWrites: [] };
   const env: HarnessEnvironment = {

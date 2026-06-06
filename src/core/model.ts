@@ -186,8 +186,13 @@ export type QualityGate = {
   readonly kind: GateKind;
   readonly name: string;
   readonly blocking: boolean;
-  readonly command: string;
+  readonly command: Command;
   readonly evidence: string;
+};
+
+export type Command = {
+  readonly program: string;
+  readonly args: readonly string[];
 };
 
 export type VerificationHarness = {
@@ -195,13 +200,8 @@ export type VerificationHarness = {
   readonly name: string;
   readonly generatedFor: readonly string[];
   readonly requiredForProduction: boolean;
-  readonly command: HarnessCommand;
+  readonly command: Command;
   readonly evidenceDir: string;
-};
-
-export type HarnessCommand = {
-  readonly program: string;
-  readonly args: readonly string[];
 };
 
 export type DiagramTarget = {
@@ -285,7 +285,7 @@ export type HarnessRunOutcome = {
 };
 
 export type HarnessEnvironment = {
-  readonly run: (command: HarnessCommand, cwd: string) => HarnessRunOutcome;
+  readonly run: (command: Command, cwd: string) => HarnessRunOutcome;
   readonly writeEvidence: (evidenceDir: string, fileName: string, content: string) => string;
   readonly now: () => string;
   readonly cwd: string;
@@ -294,7 +294,7 @@ export type HarnessEnvironment = {
 export type HarnessResult = {
   readonly kind: HarnessKind;
   readonly name: string;
-  readonly command: HarnessCommand;
+  readonly command: Command;
   readonly exitCode: number;
   readonly passed: boolean;
   readonly durationMs: number;

@@ -14,8 +14,8 @@ import { springBootGenerator } from "./core/generators/spring-boot.js";
 import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
 import type {
+  Command,
   FileWriter,
-  HarnessCommand,
   HarnessEnvironment,
   HarnessRunOutcome,
   MarkdownPolicy,
@@ -39,7 +39,7 @@ const allowedCommands = [
 
 const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator, goWorkerGenerator, springBootGenerator, nodeHttpGenerator];
 
-type Command = typeof allowedCommands[number];
+type CliCommand = typeof allowedCommands[number];
 
 export type MarkdownClassification = "human-onboarding" | "agent-runtime" | "forbidden";
 
@@ -70,7 +70,7 @@ export function classifyMarkdown(relativePath: string, policy: MarkdownPolicy): 
 type ParsedCli =
   | { readonly kind: "help" }
   | { readonly kind: "version" }
-  | { readonly kind: "command"; readonly command: Command; readonly options: CliOptions }
+  | { readonly kind: "command"; readonly command: CliCommand; readonly options: CliOptions }
   | { readonly kind: "missing" }
   | { readonly kind: "unknown"; readonly raw: string };
 
@@ -102,7 +102,7 @@ function parseCli(argv: readonly string[]): ParsedCli {
   return { kind: "command", command: head, options: parseOptions(rest.slice(1)) };
 }
 
-function isCommand(value: string): value is Command {
+function isCommand(value: string): value is CliCommand {
   return (allowedCommands as readonly string[]).includes(value);
 }
 
@@ -192,7 +192,7 @@ async function main(argv: readonly string[]): Promise<void> {
   }
 }
 
-async function runCommand(command: Command, options: CliOptions): Promise<void> {
+async function runCommand(command: CliCommand, options: CliOptions): Promise<void> {
   switch (command) {
     case "verify-markdown":
       verifyMarkdownPolicy();
@@ -244,7 +244,7 @@ function runHarnessesCommand(options: CliOptions): void {
 function createDefaultHarnessEnvironment(cwd: string): HarnessEnvironment {
   return {
     cwd,
-    run: (command: HarnessCommand): HarnessRunOutcome => {
+    run: (command: Command): HarnessRunOutcome => {
       const started = Date.now();
       const result = spawnSync(command.program, [...command.args], { cwd, encoding: "utf8" });
       return {

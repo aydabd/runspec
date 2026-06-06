@@ -32,9 +32,9 @@ test("RunSpec provides an agent task from executable policy", () => {
 
 test("acceptanceForBlockingGates filters non-blocking gates", () => {
   const result = acceptanceForBlockingGates([
-    { kind: "requirement", name: "req", blocking: true, command: "", evidence: "" },
-    { kind: "report", name: "informational", blocking: false, command: "", evidence: "" },
-    { kind: "security", name: "sec", blocking: true, command: "", evidence: "" },
+    { kind: "requirement", name: "req", blocking: true, command: { program: "true", args: [] }, evidence: "" },
+    { kind: "report", name: "informational", blocking: false, command: { program: "true", args: [] }, evidence: "" },
+    { kind: "security", name: "sec", blocking: true, command: { program: "true", args: [] }, evidence: "" },
   ]);
   assert.deepEqual(result, ["requirement gate passes", "security gate passes"]);
 });
