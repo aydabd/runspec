@@ -45,6 +45,8 @@ export { generate, writeGenerationResult, GenerationError } from "./core/generat
 
 export { goHttpGenerator } from "./core/generators/go-http.js";
 
+export { springBootGenerator } from "./core/generators/spring-boot.js";
+
 export type {
   AcceptanceCriterion,
   AcceptancePredicate,

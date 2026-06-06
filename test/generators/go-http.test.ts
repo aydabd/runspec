@@ -20,7 +20,7 @@ test("goHttpGenerator produces go.mod with the expected module path", () => {
   const goMod = files.find(file => file.path === "go.mod");
   assert.ok(goMod);
   assert.match(goMod.content, /module example\.com\/go-http-service/);
-  assert.match(goMod.content, /go 1\.22/);
+  assert.match(goMod.content, /go 1\.26/);
 });
 
 test("goHttpGenerator emits one domain file per declared domain object", () => {
@@ -72,6 +72,20 @@ test("goHttpGenerator sanitises path separators and dot segments in identifiers"
     assert.ok(!basename.includes("/"), `domain filename "${basename}" contains a slash`);
     assert.ok(!basename.startsWith(".."), `domain filename "${basename}" starts with ..`);
     assert.ok(!basename.includes("/.."), `domain filename "${basename}" contains a parent reference`);
+  }
+});
+
+test("goHttpGenerator sanitises control characters in capability and service ids before embedding in headers", () => {
+  const capabilityWithControlId = { ...capability, id: "BAD\nID\tWITH\rCONTROL" };
+  const serviceWithControlId = { ...service, id: "svc\nname" };
+  const files = goHttpGenerator.generate(capabilityWithControlId, serviceWithControlId);
+  for (const file of files) {
+    if (file.path === "go.mod") {
+      continue;
+    }
+    const sourceLine = file.content.split("\n").find(line => line.startsWith("// Source:"));
+    assert.ok(sourceLine, `missing Source header in ${file.path}`);
+    assert.ok(!/[\r\t]/.test(sourceLine), `control character leaked into header of ${file.path}: ${JSON.stringify(sourceLine)}`);
   }
 });
 
