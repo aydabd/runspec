@@ -41,6 +41,8 @@ export type { AgentTask } from "./core/agent.js";
 
 export { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 
+export { runHarnesses } from "./core/runner.js";
+
 export { generate, writeGenerationResult, GenerationError } from "./core/generator.js";
 
 export { goHttpGenerator } from "./core/generators/go-http.js";

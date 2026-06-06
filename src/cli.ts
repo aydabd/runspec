@@ -6,6 +6,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
 import { generate, writeGenerationResult } from "./core/generator.js";
+import { runHarnesses } from "./core/runner.js";
 import { goHttpGenerator } from "./core/generators/go-http.js";
 import { goWorkerGenerator } from "./core/generators/go-worker.js";
 import { nodeHttpGenerator } from "./core/generators/node-http.js";
@@ -14,6 +15,9 @@ import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
 import type {
   FileWriter,
+  HarnessCommand,
+  HarnessEnvironment,
+  HarnessRunOutcome,
   MarkdownPolicy,
   PlanEnvironment,
   SkeletonGenerator,
@@ -30,6 +34,7 @@ const allowedCommands = [
   "list-followups",
   "plan-status",
   "generate",
+  "run-harnesses",
 ] as const;
 
 const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator, goWorkerGenerator, springBootGenerator, nodeHttpGenerator];
@@ -73,6 +78,7 @@ type CliOptions = {
   readonly planPath: string;
   readonly capabilityId?: string;
   readonly serviceId?: string;
+  readonly scenarioId?: string;
   readonly outputRoot?: string;
   readonly dryRun: boolean;
   readonly force: boolean;
@@ -104,6 +110,7 @@ function parseOptions(args: readonly string[]): CliOptions {
   let planPath = defaultPlanSourcePath;
   let capabilityId: string | undefined;
   let serviceId: string | undefined;
+  let scenarioId: string | undefined;
   let outputRoot: string | undefined;
   let dryRun = false;
   let force = false;
@@ -130,6 +137,13 @@ function parseOptions(args: readonly string[]): CliOptions {
       }
       serviceId = value;
       i += 1;
+    } else if (arg === "--scenario") {
+      const value = args[i + 1];
+      if (value === undefined) {
+        throw new UsageError("--scenario requires a scenario id");
+      }
+      scenarioId = value;
+      i += 1;
     } else if (arg === "--output") {
       const value = args[i + 1];
       if (value === undefined) {
@@ -146,7 +160,13 @@ function parseOptions(args: readonly string[]): CliOptions {
     }
   }
   const options: CliOptions = { planPath, dryRun, force };
-  return { ...options, ...(capabilityId !== undefined ? { capabilityId } : {}), ...(serviceId !== undefined ? { serviceId } : {}), ...(outputRoot !== undefined ? { outputRoot } : {}) };
+  return {
+    ...options,
+    ...(capabilityId !== undefined ? { capabilityId } : {}),
+    ...(serviceId !== undefined ? { serviceId } : {}),
+    ...(scenarioId !== undefined ? { scenarioId } : {}),
+    ...(outputRoot !== undefined ? { outputRoot } : {}),
+  };
 }
 
 async function main(argv: readonly string[]): Promise<void> {
@@ -199,7 +219,55 @@ async function runCommand(command: Command, options: CliOptions): Promise<void> 
     case "generate":
       runGenerate(options);
       return;
+    case "run-harnesses":
+      runHarnessesCommand(options);
+      return;
   }
+}
+
+function runHarnessesCommand(options: CliOptions): void {
+  const env = createDefaultHarnessEnvironment(process.cwd());
+  const report = runHarnesses(
+    runSpecFramework,
+    {
+      ...(options.scenarioId !== undefined ? { scenarioId: options.scenarioId } : {}),
+      dryRun: options.dryRun,
+    },
+    env,
+  );
+  printJson(report);
+  if (!report.passed) {
+    process.exitCode = exitCodePolicyFailure;
+  }
+}
+
+function createDefaultHarnessEnvironment(cwd: string): HarnessEnvironment {
+  return {
+    cwd,
+    run: (command: HarnessCommand): HarnessRunOutcome => {
+      const started = Date.now();
+      const result = spawnSync(command.program, [...command.args], { cwd, encoding: "utf8" });
+      return {
+        exitCode: result.status ?? 1,
+        stdout: result.stdout ?? "",
+        stderr: result.stderr ?? "",
+        durationMs: Date.now() - started,
+      };
+    },
+    writeEvidence: (evidenceDir, fileName, content) => {
+      const absoluteDir = resolve(cwd, evidenceDir);
+      const absoluteOutputRoot = resolve(cwd);
+      const relativeDirFromRoot = relative(absoluteOutputRoot, absoluteDir);
+      if (relativeDirFromRoot.startsWith("..") || isAbsolute(relativeDirFromRoot)) {
+        throw new UsageError(`harness evidenceDir "${evidenceDir}" escapes the repository root`);
+      }
+      const absolutePath = resolve(absoluteDir, fileName);
+      mkdirSync(absoluteDir, { recursive: true });
+      writeFileSync(absolutePath, content);
+      return absolutePath;
+    },
+    now: () => new Date().toISOString().replace(/[:.]/g, "-"),
+  };
 }
 
 export function runGenerate(options: CliOptions): void {
@@ -265,11 +333,13 @@ function usageText(): string {
     "  list-followups     Print the remaining FollowUpMilestones as JSON",
     "  plan-status        Alias for verify-plan",
     "  generate           Emit a service skeleton from a capability + service-target",
+    "  run-harnesses      Run every declared VerificationHarness and write evidence",
     "",
     "Options:",
     "  --plan <path>      Path to the plan source file (default: src/plans/pr1.ts)",
     "  --capability <id>  Capability id (required for generate)",
     "  --service <id>     Service target id (required for generate)",
+    "  --scenario <id>    Filter run-harnesses to a single scenario",
     "  --output <dir>     Output directory (default: .runspec/generated/<cap>-<svc>)",
     "  --dry-run          Print the generation plan without writing files",
     "  --force            Allow overwriting existing files during generate",
