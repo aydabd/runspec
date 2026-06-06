@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
@@ -232,9 +232,14 @@ export function runGenerate(options: CliOptions): void {
   printJson(summary);
 }
 
-function createFileWriter(cwd: string, force: boolean): FileWriter {
+export function createFileWriter(cwd: string, force: boolean): FileWriter {
   return (outputRoot, relativePath, content) => {
-    const absolutePath = resolve(cwd, outputRoot, relativePath);
+    const absoluteOutputRoot = resolve(cwd, outputRoot);
+    const absolutePath = resolve(absoluteOutputRoot, relativePath);
+    const relativeFromRoot = relative(absoluteOutputRoot, absolutePath);
+    if (relativeFromRoot.startsWith("..") || isAbsolute(relativeFromRoot)) {
+      throw new UsageError(`generator path "${relativePath}" escapes the output directory`);
+    }
     if (!force && existsSync(absolutePath)) {
       throw new UsageError(`refusing to overwrite existing file: ${absolutePath} (pass --force to overwrite)`);
     }

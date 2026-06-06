@@ -99,6 +99,22 @@ test("cli generate --force replaces existing files", () => {
   }
 });
 
+test("createFileWriter refuses to write outside the outputRoot", async () => {
+  const cliModule = (await import("../src/cli.js")) as Record<string, unknown>;
+  const factory = cliModule["createFileWriter"] as ((cwd: string, force: boolean) => (root: string, rel: string, content: string) => void) | undefined;
+  if (factory === undefined) {
+    return;
+  }
+  const outputDir = mkdtempSync(resolve(tmpdir(), "runspec-gen-traverse-"));
+  try {
+    const writer = factory(outputDir, false);
+    assert.throws(() => writer(outputDir, "../escape.txt", "x"), /escapes the output directory/);
+    assert.throws(() => writer(outputDir, "/etc/passwd", "x"), /escapes the output directory/);
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
 test("cli generate against unknown capability exits 1", () => {
   const result = runCli(
     ["generate", "--capability", "DOES_NOT_EXIST", "--service", "go-http-service", "--dry-run"],
