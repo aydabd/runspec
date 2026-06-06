@@ -151,7 +151,7 @@ function handlerFile(header: string): string {
 
 function scenarioTestFile(header: string, scenarioId: string, scenarioTitle: string): string {
   const testName = `Test${pascalCase(scenarioId)}`;
-  const escapedTitle = scenarioTitle.replace(/"/g, '\\"');
+  const escapedTitle = scenarioTitle.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   return [
     header,
     "package tests",
@@ -167,18 +167,25 @@ function scenarioTestFile(header: string, scenarioId: string, scenarioTitle: str
 }
 
 function snakeCase(input: string): string {
-  return input
+  const sanitised = input
     .replace(/[-_]+/g, "_")
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return sanitised.length > 0 ? sanitised : "unnamed";
 }
 
 function pascalCase(input: string): string {
-  return input
+  const parts = input
     .replace(/[-_]+/g, " ")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
     .split(/\s+/)
-    .filter(part => part.length > 0)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join("");
+    .filter(part => part.length > 0);
+  if (parts.length === 0) {
+    return "Unnamed";
+  }
+  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join("");
 }
