@@ -7,6 +7,7 @@ import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
 import { generate, writeGenerationResult } from "./core/generator.js";
 import { goHttpGenerator } from "./core/generators/go-http.js";
+import { springBootGenerator } from "./core/generators/spring-boot.js";
 import { listFollowUps, nextPlanStep, verifyPlan } from "./core/plan.js";
 import { validateRunSpecFramework, validateWorkPlan } from "./core/validators.js";
 import type {
@@ -29,7 +30,7 @@ const allowedCommands = [
   "generate",
 ] as const;
 
-const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator];
+const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator, springBootGenerator];
 
 type Command = typeof allowedCommands[number];
 
