@@ -308,19 +308,19 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PRs #1–#7):** typed domain model, identity builders, validator
+**Today (PRs #1–#8):** typed domain model, identity builders, validator
 with a rule registry, agent-task emitter, hardened CLI, public API surface,
 WorkPlan domain, executable plans in `src/plans/pr<N>.ts`, skeleton
 generator abstraction with four shipped templates (Go HTTP, Go worker,
-Spring Boot, Node.js HTTP), the verification harness runner, and the
-quality gate executor — all driven by the same typed `Command` shape with
-structured `{ program, args }` (no shell strings).
+Spring Boot, Node.js HTTP), the verification harness runner, the quality
+gate executor, and frontend coverage in the model (react-spa, next, vue
+service frameworks; ui-component, accessibility, visual-regression,
+bundle-size harnesses; accessibility, frontend-security gates).
 
-**Next milestones** (see `runspec list-followups --plan src/plans/pr7.ts`):
-skeleton-generator-react (blocked by frontend-coverage), frontend-coverage,
-watch-mode, npm-publish, eslint-or-biome-config, ci-coverage-gating,
-makefile-language-adapters, additional-agent-task-shapes,
-cross-agent-policy-export.
+**Next milestones** (see `runspec list-followups --plan src/plans/pr8.ts`):
+skeleton-generator-react (now unblocked), watch-mode, npm-publish,
+eslint-or-biome-config, ci-coverage-gating, makefile-language-adapters,
+additional-agent-task-shapes, cross-agent-policy-export.
 
 ## Main executable files
 
@@ -333,7 +333,7 @@ src/plans/pr4.ts
 src/plans/pr5.ts
 src/plans/pr6.ts
 src/plans/pr7.ts
-src/examples/loanPlatform.ts
+src/plans/pr8.ts
 src/core/model.ts
 src/core/builders.ts
 src/core/validators.ts

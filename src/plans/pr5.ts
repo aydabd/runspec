@@ -157,7 +157,7 @@ const pr5: WorkPlan = defineWorkPlan({
         "ServiceTarget supports typescript:react-spa, typescript:next, typescript:vue",
         "HarnessKind adds ui-component, accessibility, visual-regression, bundle-size",
         "GateKind adds accessibility and frontend-security (CSP/XSS/CORS)",
-        "loanPlatform example or a new example demonstrates a frontend service",
+        "an example demonstrates a frontend service",
       ],
       nonGoals: ["picking a frontend framework opinionatedly — generator stays pluggable"],
       blockedBy: [],

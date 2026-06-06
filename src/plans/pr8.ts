@@ -16,13 +16,13 @@ const pr8: WorkPlan = defineWorkPlan({
   id: "pr-8-frontend-coverage",
   title: "Frontend coverage in the model",
   thesis:
-    "Extend ServiceFramework, HarnessKind, and GateKind unions so frontend apps are first-class in the runspec model. Add a borrower-portal frontend service to the loanPlatform example. This unblocks skeleton-generator-react which can land as its own follow-up PR.",
+    "Extend ServiceFramework, HarnessKind, and GateKind unions so frontend apps are first-class in the runspec model, and remove the loanPlatform example from the repo per consumer request. This unblocks skeleton-generator-react which can land as its own follow-up PR.",
   pr: { number: 8, branch: "main" },
   constraints: [
     "no Claude/Anthropic attribution anywhere",
     "no filler comments",
     "no markdown specifications",
-    "no scope creep — only model union additions, loanPlatform frontend service, tests, docs. No React generator here.",
+    "no scope creep — model union additions, loanPlatform removal, tests, docs. No React generator here.",
     "purely additive: existing validators and tests remain green",
   ],
   commits: [
@@ -38,10 +38,7 @@ const pr8: WorkPlan = defineWorkPlan({
       id: "c2-frontend-unions",
       subject: "feat(model): extend ServiceFramework / HarnessKind / GateKind with frontend kinds",
       rationale: "Add typescript:react-spa, typescript:next, typescript:vue service frameworks; ui-component, accessibility, visual-regression, bundle-size harnesses; accessibility, frontend-security gates.",
-      touches: [
-        "src/core/model.ts",
-        "src/examples/loanPlatform.ts",
-      ],
+      touches: ["src/core/model.ts"],
       mustNotTouch: ["dist/**", "node_modules/**", ".runspec/generated/**"],
       acceptance: [
         acceptanceCriterion({
@@ -49,29 +46,25 @@ const pr8: WorkPlan = defineWorkPlan({
           description: "verify-blueprint exits 0 after model union expansion",
           predicate: { kind: "cli-exit", argv: ["verify-blueprint"], expectedExit: 0 },
         }),
-        acceptanceCriterion({
-          id: "loanplatform-has-frontend-service",
-          description: "loanPlatform example exports a service with framework react-spa or next",
-          predicate: {
-            kind: "module-property-equals",
-            modulePath: "src/examples/loanPlatform.ts",
-            exportName: "loanPlatformExample",
-            path: ["services", "3", "framework"],
-            expected: "react-spa",
-          },
-        }),
       ],
     }),
     plannedCommit({
-      id: "c3-tests",
-      subject: "test: loanPlatform fixture expanded with frontend service",
-      rationale: "Existing tests assert services.length === 3; bump to 4 and add the borrower-portal assertion.",
-      touches: ["test/blueprint.test.ts"],
+      id: "c3-remove-loanplatform",
+      subject: "chore: remove loanPlatform example from the repo and tests",
+      rationale: "Consumer-requested cleanup. The runspec model no longer references a sample app; downstream consumers declare their own enterpriseApplicationExample inline.",
+      touches: [
+        "test/blueprint.test.ts",
+      ],
       mustNotTouch: ["dist/**", "node_modules/**", ".runspec/generated/**"],
       acceptance: [
         acceptanceCriterion({
-          id: "npm-test-passes",
-          description: "npm test exits 0 after fixture expansion",
+          id: "loanplatform-source-absent",
+          description: "src/examples/loanPlatform.ts is gone",
+          predicate: { kind: "file-absent", path: "src/examples/loanPlatform.ts" },
+        }),
+        acceptanceCriterion({
+          id: "npm-test-still-passes",
+          description: "verify-blueprint still exits 0 after the removal",
           predicate: { kind: "cli-exit", argv: ["verify-blueprint"], expectedExit: 0 },
         }),
       ],

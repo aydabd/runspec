@@ -174,7 +174,7 @@ const pr4: WorkPlan = defineWorkPlan({
       outcomes: [
         "goWorkerGenerator value exists in src/core/generators/go-worker.ts",
         "generated Go compiles and links Kafka or RabbitMQ libs as declared by the adapter",
-        "snapshot test covers the loanPlatform decision-worker capability",
+        "snapshot test covers the a Go worker capability",
       ],
       nonGoals: ["choosing a Kafka client library opinionatedly"],
       blockedBy: [],
@@ -210,7 +210,7 @@ const pr4: WorkPlan = defineWorkPlan({
         "ServiceTarget supports typescript:react-spa, typescript:next, typescript:vue",
         "HarnessKind adds ui-component, accessibility, visual-regression, bundle-size",
         "GateKind adds accessibility and frontend-security (CSP/XSS/CORS)",
-        "loanPlatform example or a new example demonstrates a frontend service",
+        "an example demonstrates a frontend service",
       ],
       nonGoals: ["picking a frontend framework opinionatedly — generator stays pluggable"],
       blockedBy: [],

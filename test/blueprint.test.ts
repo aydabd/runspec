@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { runSpecFramework } from "../src/blueprint/runSpecFramework.js";
 import { acceptanceForBlockingGates, nextAgentTask } from "../src/core/agent.js";
+import { enterpriseApplicationExample } from "../src/core/builders.js";
 import { validateRunSpecFramework } from "../src/core/validators.js";
-import { loanPlatformExample } from "../src/examples/loanPlatform.js";
 
 test("RunSpec enterprise blueprint is valid", () => {
   const result = validateRunSpecFramework(runSpecFramework);
@@ -39,11 +39,43 @@ test("acceptanceForBlockingGates filters non-blocking gates", () => {
   assert.deepEqual(result, ["requirement gate passes", "security gate passes"]);
 });
 
-test("RunSpec example supports enterprise multi-service topology with a frontend", () => {
-  assert.equal(loanPlatformExample.workspaceMode, "monorepo");
-  assert.equal(loanPlatformExample.services.length, 4);
-  assert.deepEqual(loanPlatformExample.infrastructure, ["postgres", "rabbitmq", "kafka", "redis", "vault"]);
-  const frontend = loanPlatformExample.services.find(service => service.framework === "react-spa");
-  assert.ok(frontend, "expected a react-spa frontend service");
-  assert.equal(frontend.language, "typescript");
+test("enterpriseApplicationExample accepts multi-service monorepos including frontend", () => {
+  const sample = enterpriseApplicationExample({
+    name: "sample-app",
+    workspaceMode: "monorepo",
+    infrastructure: ["postgres", "kafka"],
+    capabilities: ["SUBMIT", "DECIDE"],
+    services: [
+      {
+        id: "api",
+        language: "java",
+        framework: "spring-boot",
+        ownsCapabilities: ["SUBMIT"],
+        consumesEvents: [],
+        publishesEvents: ["submit.created"],
+        storesDataIn: ["postgres"],
+      },
+      {
+        id: "worker",
+        language: "go",
+        framework: "worker",
+        ownsCapabilities: ["DECIDE"],
+        consumesEvents: ["submit.created"],
+        publishesEvents: ["decide.completed"],
+        storesDataIn: ["postgres"],
+      },
+      {
+        id: "ui",
+        language: "typescript",
+        framework: "react-spa",
+        ownsCapabilities: ["SUBMIT"],
+        consumesEvents: [],
+        publishesEvents: [],
+        storesDataIn: [],
+      },
+    ],
+  });
+  assert.equal(sample.workspaceMode, "monorepo");
+  assert.equal(sample.services.length, 3);
+  assert.ok(sample.services.some(service => service.framework === "react-spa"));
 });
