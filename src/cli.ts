@@ -6,6 +6,8 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import { runSpecFramework } from "./blueprint/runSpecFramework.js";
 import { nextAgentTask } from "./core/agent.js";
 import { generate, writeGenerationResult } from "./core/generator.js";
+import { runGates } from "./core/gate-executor.js";
+import type { GateEnvironment, GateRunOutcome } from "./core/gate-executor.js";
 import { runHarnesses } from "./core/runner.js";
 import { goHttpGenerator } from "./core/generators/go-http.js";
 import { goWorkerGenerator } from "./core/generators/go-worker.js";
@@ -35,6 +37,7 @@ const allowedCommands = [
   "plan-status",
   "generate",
   "run-harnesses",
+  "run-gates",
 ] as const;
 
 const defaultGeneratorRegistry: readonly SkeletonGenerator[] = [goHttpGenerator, goWorkerGenerator, springBootGenerator, nodeHttpGenerator];
@@ -222,7 +225,51 @@ async function runCommand(command: CliCommand, options: CliOptions): Promise<voi
     case "run-harnesses":
       runHarnessesCommand(options);
       return;
+    case "run-gates":
+      runGatesCommand(options);
+      return;
   }
+}
+
+function runGatesCommand(options: CliOptions): void {
+  const env = createDefaultGateEnvironment(process.cwd());
+  const report = runGates(
+    runSpecFramework,
+    { dryRun: options.dryRun },
+    env,
+  );
+  printJson(report);
+  if (!report.passed) {
+    process.exitCode = exitCodePolicyFailure;
+  }
+}
+
+function createDefaultGateEnvironment(cwd: string): GateEnvironment {
+  return {
+    cwd,
+    run: (command: Command): GateRunOutcome => {
+      const started = Date.now();
+      const result = spawnSync(command.program, [...command.args], { cwd, encoding: "utf8" });
+      return {
+        exitCode: result.status ?? 1,
+        stdout: result.stdout ?? "",
+        stderr: result.stderr ?? "",
+        durationMs: Date.now() - started,
+      };
+    },
+    writeEvidence: (evidencePath, content) => {
+      const absoluteOutputRoot = resolve(cwd);
+      const absolutePath = resolve(cwd, evidencePath);
+      const relativeFromRoot = relative(absoluteOutputRoot, absolutePath);
+      if (relativeFromRoot.startsWith("..") || isAbsolute(relativeFromRoot)) {
+        throw new UsageError(`gate evidence path "${evidencePath}" escapes the repository root`);
+      }
+      mkdirSync(dirname(absolutePath), { recursive: true });
+      writeFileSync(absolutePath, content);
+      return absolutePath;
+    },
+    now: () => new Date().toISOString().replace(/[:.]/g, "-"),
+  };
 }
 
 function runHarnessesCommand(options: CliOptions): void {
@@ -334,6 +381,7 @@ function usageText(): string {
     "  plan-status        Alias for verify-plan",
     "  generate           Emit a service skeleton from a capability + service-target",
     "  run-harnesses      Run every declared VerificationHarness and write evidence",
+    "  run-gates          Run every declared QualityGate and write evidence",
     "",
     "Options:",
     "  --plan <path>      Path to the plan source file (default: src/plans/pr1.ts)",
