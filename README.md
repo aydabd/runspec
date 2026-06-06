@@ -122,8 +122,9 @@ repository safety check failed.
 ## Generating service skeletons
 
 `runspec generate` turns a typed `ProductCapability` plus a `ServiceTarget`
-into a deterministic set of source files. The Go HTTP generator is the
-reference implementation; Spring Boot, Node HTTP, React, and Go worker
+into a deterministic set of source files. Today two generators ship in the
+default registry — `goHttpGenerator` (`go:go-http`) and
+`springBootGenerator` (`java:spring-boot`). Node HTTP, React, and Go worker
 templates are declared as `FollowUpMilestone` entries in the active plan
 and will land in subsequent PRs.
 
@@ -148,10 +149,21 @@ runspec generate \
   --force
 ```
 
-The Go template emits `go.mod`, `main.go`, `domain/`, `usecases/`, `ports/`,
-`adapters/`, `repositories/`, `http/handler.go`, and one `tests/<scenario>_test.go`
-per scenario. Every file carries a deterministic generated-by header citing
-the source capability and service ids.
+Generated layout per template:
+
+- **Go HTTP** (`go-http-service`): `go.mod`, `main.go`, `domain/`,
+  `usecases/`, `ports/`, `adapters/`, `repositories/`, `http/handler.go`,
+  `tests/<scenario>_test.go`.
+- **Spring Boot** (`spring-boot-service`): `pom.xml` (Spring Boot 3.5,
+  Java 21), `src/main/java/<package>/<ServiceName>Application.java`,
+  `src/main/java/<package>/domain/`, `application/`, `ports/`, `adapters/`,
+  `repositories/`, `controllers/HelloController.java`,
+  `src/test/java/<package>/<Scenario>Test.java` (`@Disabled` JUnit 5 stubs).
+
+Every file carries a deterministic generated-by header citing the source
+capability and service ids. Generators sanitise identifiers so a hostile
+blueprint cannot produce paths that escape the output directory, and the CLI
+`createFileWriter` enforces the same boundary as a defense-in-depth check.
 
 ## Use runspec in your project
 
@@ -238,18 +250,18 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PR #1 + PR #2):** typed domain model, identity builders, validator
+**Today (PRs #1–#3):** typed domain model, identity builders, validator
 with a rule registry, agent-task emitter, hardened CLI (strict argv parsing,
-safe fs walk, distinct exit codes), public API surface, WorkPlan domain, the
-self-verifying executable plans in `src/plans/pr<N>.ts`, and the skeleton
-generator abstraction with the Go HTTP template as the reference
-implementation.
+safe fs walk, distinct exit codes, path-traversal-safe writer), public API
+surface, WorkPlan domain, the self-verifying executable plans in
+`src/plans/pr<N>.ts`, and the skeleton generator abstraction with two
+shipped templates: Go HTTP and Spring Boot.
 
-**Next milestones** (see `runspec list-followups --plan src/plans/pr2.ts`):
-skeleton-generator-spring-boot, skeleton-generator-node-http,
-skeleton-generator-react, skeleton-generator-go-worker, harness-runner,
-gate-executor, frontend-coverage, watch-mode, npm-publish,
-eslint-or-biome-config, ci-coverage-gating, makefile-language-adapters,
+**Next milestones** (see `runspec list-followups --plan src/plans/pr3.ts`):
+skeleton-generator-node-http, skeleton-generator-react,
+skeleton-generator-go-worker, harness-runner, gate-executor,
+frontend-coverage, watch-mode, npm-publish, eslint-or-biome-config,
+ci-coverage-gating, makefile-language-adapters,
 additional-agent-task-shapes, cross-agent-policy-export.
 
 ## Main executable files
@@ -258,6 +270,7 @@ additional-agent-task-shapes, cross-agent-policy-export.
 src/blueprint/runSpecFramework.ts
 src/plans/pr1.ts
 src/plans/pr2.ts
+src/plans/pr3.ts
 src/examples/loanPlatform.ts
 src/core/model.ts
 src/core/builders.ts
@@ -266,6 +279,7 @@ src/core/agent.ts
 src/core/plan.ts
 src/core/generator.ts
 src/core/generators/go-http.ts
+src/core/generators/spring-boot.ts
 src/cli.ts
 src/index.ts
 ```
