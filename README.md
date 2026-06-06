@@ -115,6 +115,7 @@ runspec agent-next
 runspec blueprint-print
 runspec generate --capability APPLICATION_BUILDER --service go-http-service --dry-run
 runspec run-harnesses --dry-run
+runspec run-gates --dry-run
 ```
 
 Exit codes: `0` success, `1` policy or validation failure, `2` usage error or
@@ -203,6 +204,25 @@ Evidence files land under each harness's `evidenceDir` (default
 the resolved path stays inside the repository root, so a hostile blueprint
 cannot direct evidence writes outside the working tree.
 
+## Running quality gates
+
+Each `QualityGate` carries the same typed `Command { program, args }` as
+harnesses and an `evidence` file path. `runspec run-gates` spawns every
+gate, writes evidence per gate, and exits non-zero when any blocking gate
+fails:
+
+```bash
+# Inspect which gates would run
+runspec run-gates --dry-run
+
+# Run every gate; exit 0 only if every blocking gate passes
+runspec run-gates
+```
+
+Evidence files land under `.runspec/generated/gates/<kind>.json`. A failing
+non-blocking gate is reported in the JSON output but does not flip
+`report.passed`; only a blocking gate failure causes exit code 1.
+
 ## Use runspec in your project
 
 ```ts
@@ -288,19 +308,19 @@ Nothing depends on chat history or markdown — the plan IS code.
 
 ## What runs today, what is next
 
-**Today (PRs #1–#6):** typed domain model, identity builders, validator
-with a rule registry, agent-task emitter, hardened CLI (strict argv parsing,
-safe fs walk, distinct exit codes, path-traversal-safe writer), public API
-surface, WorkPlan domain, the self-verifying executable plans in
-`src/plans/pr<N>.ts`, the skeleton generator abstraction with four shipped
-templates (Go HTTP, Go worker, Spring Boot, Node.js HTTP), and the
-verification harness runner with structured commands + evidence files.
+**Today (PRs #1–#7):** typed domain model, identity builders, validator
+with a rule registry, agent-task emitter, hardened CLI, public API surface,
+WorkPlan domain, executable plans in `src/plans/pr<N>.ts`, skeleton
+generator abstraction with four shipped templates (Go HTTP, Go worker,
+Spring Boot, Node.js HTTP), the verification harness runner, and the
+quality gate executor — all driven by the same typed `Command` shape with
+structured `{ program, args }` (no shell strings).
 
-**Next milestones** (see `runspec list-followups --plan src/plans/pr6.ts`):
-skeleton-generator-react (blocked by frontend-coverage), gate-executor,
-frontend-coverage, watch-mode, npm-publish, eslint-or-biome-config,
-ci-coverage-gating, makefile-language-adapters,
-additional-agent-task-shapes, cross-agent-policy-export.
+**Next milestones** (see `runspec list-followups --plan src/plans/pr7.ts`):
+skeleton-generator-react (blocked by frontend-coverage), frontend-coverage,
+watch-mode, npm-publish, eslint-or-biome-config, ci-coverage-gating,
+makefile-language-adapters, additional-agent-task-shapes,
+cross-agent-policy-export.
 
 ## Main executable files
 
@@ -312,6 +332,7 @@ src/plans/pr3.ts
 src/plans/pr4.ts
 src/plans/pr5.ts
 src/plans/pr6.ts
+src/plans/pr7.ts
 src/examples/loanPlatform.ts
 src/core/model.ts
 src/core/builders.ts
@@ -319,6 +340,7 @@ src/core/validators.ts
 src/core/agent.ts
 src/core/plan.ts
 src/core/runner.ts
+src/core/gate-executor.ts
 src/core/generator.ts
 src/core/generators/_shared.ts
 src/core/generators/go-http.ts
