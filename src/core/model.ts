@@ -195,6 +195,13 @@ export type VerificationHarness = {
   readonly name: string;
   readonly generatedFor: readonly string[];
   readonly requiredForProduction: boolean;
+  readonly command: HarnessCommand;
+  readonly evidenceDir: string;
+};
+
+export type HarnessCommand = {
+  readonly program: string;
+  readonly args: readonly string[];
 };
 
 export type DiagramTarget = {

@@ -267,4 +267,3 @@ function javaPackageSegment(input: string): string {
   }
   return /^[0-9]/.test(cleaned) ? `s${cleaned}` : cleaned;
 }
-
